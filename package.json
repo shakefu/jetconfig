@@ -1,0 +1,27 @@
+{
+  "name": "jetconfig",
+  "version": "1.0.0",
+  "description": "etcd based configuration for node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shakefu/jetconfig.git"
+  },
+  "keywords": [
+    "node",
+    "etcd",
+    "config",
+    "configuration",
+    "js",
+    "node.js"
+  ],
+  "author": "Jacob Alheid",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/shakefu/jetconfig/issues"
+  },
+  "homepage": "https://github.com/shakefu/jetconfig#readme"
+}
