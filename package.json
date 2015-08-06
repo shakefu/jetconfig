@@ -23,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/shakefu/jetconfig/issues"
   },
-  "homepage": "https://github.com/shakefu/jetconfig#readme"
+  "homepage": "https://github.com/shakefu/jetconfig#readme",
+  "devDependencies": {
+    "mocha": "^2.2.5"
+  }
 }
