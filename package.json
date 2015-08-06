@@ -26,5 +26,8 @@
   "homepage": "https://github.com/shakefu/jetconfig#readme",
   "devDependencies": {
     "mocha": "^2.2.5"
+  },
+  "dependencies": {
+    "node-etcd": "^4.1.0"
   }
 }
