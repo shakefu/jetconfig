@@ -4,7 +4,7 @@
   "description": "etcd based configuration for node.js",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/index.js"
+    "test": "jshint --verbose *.js test/*.js && mocha test/index.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +26,7 @@
   "homepage": "https://github.com/shakefu/jetconfig#readme",
   "devDependencies": {
     "chai": "^3.2.0",
+    "jshint": "^2.8.0",
     "mocha": "^2.2.5"
   },
   "dependencies": {
