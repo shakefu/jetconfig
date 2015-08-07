@@ -8,4 +8,5 @@ before_script:
   - tar xzvf etcd-v2.1.1-linux-amd64.tar.gz
   - cd etcd-v2.1.1-linux-amd64
   - ./etcd &
+  - cd -
   - sleep 3 # Give etcd startup time
