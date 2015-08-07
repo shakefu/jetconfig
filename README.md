@@ -1,6 +1,29 @@
 # jetconfig
 etcd based configuration for node.js
 
+## Installation
+
+jetconfig is on [npmjs.org].
+
+```bash
+$ npm install --save jetconfig
+```
+
+Make sure you have [etcd](http://coreos.com/docs/etcd) running otherwise
+jetconfig isn't going to do you a lot of good.
+
+## Getting started
+
+```javascript
+var Config = require('jetconfig');
+
+var conf = new Config();
+```
+
+## API Documentation
+
+
+## License
 
 Copyright 2015 Jacob Alheid
 
