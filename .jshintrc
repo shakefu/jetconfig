@@ -16,7 +16,6 @@
   "expr":          false,
   "forin":         false,
   "funcscope":     false,
-  "globals":       {"describe": true, "it": true},
   "globalstrict":  false,
   "immed":         false,
   "indent":        4,
@@ -57,5 +56,11 @@
   "validthis":     false,
   "worker":        false,
   "wsh":           false,
-  "yui":           false
+  "yui":           false,
+  "globals":       {
+      "describe": true,
+      "it": true,
+      "before": true,
+      "after": true
+  }
 }
