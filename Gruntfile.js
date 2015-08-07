@@ -7,10 +7,12 @@ module.exports = function(grunt) {
 
         // Lint configuration
         jshint: {
-          files: ['Gruntfile.js', 'index.js', 'test/index.js'],
-          options: {
-            jshintrc: '.jshintrc',
-          }
+            files: ['*.js', 'test/*.js'],
+            // This is slower due to having to exclude all the extra files
+            // files: ['**/*.js', '!**/node_modules/**'],
+            options: {
+                jshintrc: '.jshintrc',
+            }
         },
 
         // Test configuration
@@ -21,7 +23,9 @@ module.exports = function(grunt) {
         },
 
         watch: {
-            files: ['Gruntfile.js', 'index.js', 'test/index.js'],
+            files: ['*.js', 'test/*.js'],
+            // This is slower due to having to exclude all the extra files
+            // files: ['**/*.js', '!**/node_modules/**'],
             tasks: ['test']
         }
     });
