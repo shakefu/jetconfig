@@ -25,7 +25,7 @@ var conf = new Config();
 
 ## API Documentation
 
-### `new Config([hosts], [options])`
+#### `new Config(`*`[hosts]`*`, `*`[options]`*`)`
 
 Create a new jetconfig instance.
 
