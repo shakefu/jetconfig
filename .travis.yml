@@ -3,9 +3,8 @@ node_js:
   - "0.12"
   - "0.11"
   - "0.10"
-before_install:
-  - \
-    curl -L  https://github.com/coreos/etcd/releases/download/v2.1.1/etcd-v2.1.1-linux-amd64.tar.gz -o etcd-v2.1.1-linux-amd64.tar.gz
-    tar xzvf etcd-v2.1.1-linux-amd64.tar.gz
-    cd etcd-v2.1.1-linux-amd64
-    ./etcd
+before_script:
+  - curl -L  https://github.com/coreos/etcd/releases/download/v2.1.1/etcd-v2.1.1-linux-amd64.tar.gz -o etcd-v2.1.1-linux-amd64.tar.gz
+  - tar xzvf etcd-v2.1.1-linux-amd64.tar.gz
+  - cd etcd-v2.1.1-linux-amd64
+  - ./etcd
