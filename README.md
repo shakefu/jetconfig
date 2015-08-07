@@ -29,13 +29,13 @@ var conf = new Config();
 
 Create a new jetconfig instance.
 
-* `hosts` (*Array|string*) - A host or list of hosts to use for the etcd
+* **`hosts`** (*Array|string*) - A host or list of hosts to use for the etcd
   cluster. This may be a single host as a string, an array of host strings, or
   a string of comma-separated hosts. (default: `'127.0.0.1:2379'`)
 
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
   here. 
-* `options` (*Object*) - Options object (optional)
+* **`options`** (*Object*) - Options object (optional)
 
 ## License
 
