@@ -1,6 +1,8 @@
 # jetconfig
 etcd based configuration for node.js
 
+[![Build Status](https://travis-ci.org/shakefu/jetconfig.svg)](https://travis-ci.org/shakefu/jetconfig)
+
 ## Installation
 
 jetconfig is on [npmjs.org].
