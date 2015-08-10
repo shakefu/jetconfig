@@ -38,6 +38,13 @@ Create a new jetconfig instance.
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
   here. 
 * **`options`** (*Object*) - Options object (optional)
+  * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
+  * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
+    documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
+    more information.
+    * **`ca`** - Certificate Authority
+    * **`cert`** - Client certificate
+    * **`key`** - Client key
 
 #### `.get(key, `*`[def], [options], [callback]`*`)`
 
