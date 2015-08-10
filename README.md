@@ -38,6 +38,13 @@ Create a new jetconfig instance.
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
   here. 
 * **`options`** (*Object*) - Options object (optional)
+  * **`cache`** (*Boolean*) - Whether to allow local caching to speed up
+    performance (default: `true`)
+
+    It's highly recommended that you leave this enabled, unless you
+    specifically need realtime queries of etcd. Etcd is not super duper fast,
+    so if you're using a lot of configuration keys in your application,
+    disabling this cache could potentially drasticaly slow things down.
   * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
   * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
     documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
@@ -54,7 +61,11 @@ Create a new jetconfig instance.
 
 * **`key`** (*String*) - Key name to retrieve
 * **`def`** - Default value (optional)
-* **`options`** (*Object*) - Options to provide to etcd client (optional)
+* **`options`** (*Object*) - Options for this call (optional)
+  * **`cached`** (*Boolean*) - Whether to use the configuration cache (default:
+    `true`)
+  * **`cacheResult`** (*Boolean*) - Whether to store the result in the cache
+    (default: `true`)
 * **`callback`** (*Function=*) - Callback (optional)
 
 Get the current value for `key`.
@@ -65,7 +76,12 @@ Sets a value and writes it to etcd.
 
 * **`key`** (*String*) - Key name to set
 * **`value`** - Value to set
-* **`options`** (*Object*) - Options to provide to etcd client (optional)
+* **`options`** (*Object*) - Options for this call (optional)
+  * **`cacheOnly`** (*Boolean*) - Whether to only write to the local cache and
+    not etcd (default: `false`)
+
+    If *cacheOnly* is *true* and the config instance does not have caching
+    enabled, this will not set the value anywhere.
 * **`callback`** (*Function=*) - Callback (optional)
 
 #### `.dump()`
