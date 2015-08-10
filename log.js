@@ -21,7 +21,7 @@ module.exports = Log;
  * Change the active log level for this logger
  */
 Log.prototype.level = function level (lev) {
-    if (lev === undefined) return this._level;
+    if (lev === undefined) return this._levels[this._level];
     if (this._levels[lev] === undefined) {
         throw new Error("Unknown log level '" + lev + "'");
     }
