@@ -44,7 +44,7 @@ Create a new jetconfig instance.
     It's highly recommended that you leave this enabled, unless you
     specifically need realtime queries of etcd. Etcd is not super duper fast,
     so if you're using a lot of configuration keys in your application,
-    disabling this cache could potentially drasticaly slow things down.
+    disabling this cache could cause your application to grind to a halt.
   * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
   * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
     documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
