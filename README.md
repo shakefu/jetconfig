@@ -45,6 +45,10 @@ Create a new jetconfig instance.
     * **`ca`** - Certificate Authority
     * **`cert`** - Client certificate
     * **`key`** - Client key
+  * **`logLevel`** (*String*) - Log level to use for this config instance
+    (default: `'critical'`)
+  * **`allowClear`** (*Boolean*) - Whether to allow the `.clear()` method on
+    this instance (default: `false`)
 
 #### `.get(key, `*`[def], [options], [callback]`*`)`
 
@@ -69,6 +73,11 @@ Sets a value and writes it to etcd.
 Returns an object suitable for JSON serialization which represents a dump of
 the current configuration.
 
+#### `.clear()`
+
+Clears all the stored keys for the given config object in etcd. This must be
+explicitly enabled by passing the `allowClear: true` option to the constructor.
+
 #### `.log.level(`*`[level]`*`)`
 
 Set or get the current log level for the this instance.
@@ -77,6 +86,11 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
   level is returned as a string.
+
+#### `.client()`
+
+Return a reference to the underlying *node-etcd* client instance.
+
 
 ## License
 
