@@ -64,9 +64,16 @@ Sets a value and writes it to etcd.
 * **`options`** (*Object*) - Options to provide to etcd client (optional)
 * **`callback`** (*Function=*) - Callback (optional)
 
+#### `.dump()`
+
+Returns an object suitable for JSON serialization which represents a dump of
+the current configuration.
+
 #### `.log.level(`*`[level]`*`)`
 
 Set or get the current log level for the this instance.
+
+This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
   level is returned as a string.
