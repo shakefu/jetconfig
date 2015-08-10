@@ -11,9 +11,10 @@ var Etcd = require('node-etcd');
 /**
  * Create a new config instance backed by etcd
  */
+var init; // init(hosts, opts)
 var Config = function Config (hosts, opts) {
     assert(this instanceof Config, "Missing 'new' keyword");
-    this.init(hosts, opts);
+    init.call(this, hosts, opts);
 };
 exports.Config = Config;
 
@@ -88,14 +89,16 @@ Config.prototype.set = function set (key, value, opts, callback) {
     assert(_.isString(key), "key must be a String");
 
     if (!_.isString(value)) json_value = JSON.stringify(value);
+    else json_value = value;
 
-    this.log.debug('set', key, value);
+    this.log.debug('set', key, json_value);
 
     if (_.isFunction(opts)) {
         callback = opts;
         opts = undefined;
     }
 
+    // Handle calling synchronously
     if (!_.isFunction(callback)) {
         result = this.client().setSync(this.prefix + key, json_value, opts);
         this.log.silly("Set result:", result);
@@ -103,6 +106,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
         return this;
     }
 
+    // Handle async/callback
     this.client().set(this.prefix + key, json_value, opts,
             function (err, result) {
         if (err) return callback(err);
@@ -115,55 +119,33 @@ Config.prototype.set = function set (key, value, opts, callback) {
 
 
 /**
- * Private helper for parsing the host options for the Config object.
+ * Dump the current config as an object suitable for serialization to JSON.
  */
-var _getEnvHosts = function _getEnvHosts (hosts) {
-    hosts = process.env.JETCONFIG_ETCD || hosts;
+Config.prototype.dump = function dump () {
+    var result = this.client().getSync(this.prefix, {recursive: true});
+    var nodes;
+    var obj = {};
+    var ns = '/' + this.prefix;
 
-    if (hosts === undefined) hosts = ['127.0.0.1:2379'];
-    if (_.isString(hosts)) hosts = hosts.split(',');
-
-    assert(_.isArray(hosts), "hosts must be string or array");
-    assert(_.reduce(_.map(hosts, _.isString)), "host must be string");
-
-    hosts = _.map(hosts, _.trim);
-    return hosts;
-};
-
-
-/**
- * Sets up the Config instnace
- *
- * @param hosts {String|Object} - Etcd hosts
- * @param opts {Object} - Config options
- */
-Config.prototype.init = function init (hosts, opts) {
-    var defaults = {
-        prefix: 'config/',
-        logLevel: 'critical'
-    };
-    if (_.isPlainObject(hosts)) {
-        opts = hosts;
-        hosts = undefined;
-    }
-    opts = opts || {};
-    opts = _.defaults(opts, defaults);
-
-    // Ensure prefix is a string without extra whitspace and ends with a slash
-    assert(_.isString(opts.prefix), "prefix must be string");
-    opts.prefix = _.trim(opts.prefix);
-    if (opts.prefix.slice(-1) != '/') opts.prefix += '/';
-
-    // Ensure that the sslopts has the correct format
-    if (opts.ssl){
-        assert(_.isPlainObject(opts.ssl), "ssl options must be object");
+    if (result.err) throw result.err;
+    if (!result.body || !result.body.node || !result.body.node.nodes) {
+        this.log.warn("Unknown result:", result);
+        return;
     }
 
-    this.prefix = opts.prefix;
-    this.sslopts = opts.ssl;
-    this.hosts = _getEnvHosts(hosts);
-    this.log = new Log();
-    this.log.level(this.logLevel);
+    nodes = result.body.node.nodes;
+    for (var i=0; i < nodes.length; i++) {
+        var key = nodes[i].key;
+        var value = nodes[i].value;
+        try {
+            value = JSON.parse(value);
+        }
+        catch (err) {
+        }
+        if (_.startsWith(key, ns)) key = key.slice(ns.length);
+        obj[key] = value;
+    }
+    return obj;
 };
 
 
@@ -217,6 +199,61 @@ Config.prototype._parseResult = function _parseResult (result) {
     }
 
     return value;
+};
+
+
+/**
+ * Sets up the Config instnace
+ *
+ * @param hosts {String|Object} - Etcd hosts
+ * @param opts {Object} - Config options
+ */
+var _getEnvHosts; // _getEnvHosts(hosts)
+init = function init (hosts, opts) {
+    var defaults = {
+        prefix: 'config/',
+        logLevel: 'critical'
+    };
+    if (_.isPlainObject(hosts)) {
+        opts = hosts;
+        hosts = undefined;
+    }
+    opts = opts || {};
+    opts = _.defaults(opts, defaults);
+
+    // Ensure prefix is a string without extra whitspace and ends with a slash
+    assert(_.isString(opts.prefix), "prefix must be string");
+    opts.prefix = _.trim(opts.prefix);
+    opts.prefix = _.trim(opts.prefix, '/');
+    opts.prefix += '/';
+
+    // Ensure that the sslopts has the correct format
+    if (opts.ssl){
+        assert(_.isPlainObject(opts.ssl), "ssl options must be object");
+    }
+
+    this.prefix = opts.prefix;
+    this.sslopts = opts.ssl;
+    this.hosts = _getEnvHosts(hosts);
+    this.log = new Log();
+    this.log.level(this.logLevel);
+};
+
+
+/**
+ * Private helper for parsing the host options for the Config object.
+ */
+_getEnvHosts = function _getEnvHosts (hosts) {
+    hosts = process.env.JETCONFIG_ETCD || hosts;
+
+    if (hosts === undefined) hosts = ['127.0.0.1:2379'];
+    if (_.isString(hosts)) hosts = hosts.split(',');
+
+    assert(_.isArray(hosts), "hosts must be string or array");
+    assert(_.reduce(_.map(hosts, _.isString)), "host must be string");
+
+    hosts = _.map(hosts, _.trim);
+    return hosts;
 };
 
 
