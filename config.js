@@ -28,30 +28,56 @@ exports.Config = Config;
  * @param callback {Function=} - Callback (optional)
  */
 Config.prototype.get = function get (key, def, opts, callback) {
+    var cacheEnabled = this.cacheEnabled;
+    var cacheResult = cacheEnabled;
     var result;
 
     assert(_.isString(key), "key must be a String");
 
+    // Handle when there's no default, only a callback
     if (_.isFunction(def)) {
         callback = def;
         def = undefined;
     }
 
+    // Handle when there's no options but a callback is provided
     if (_.isFunction(opts)) {
         callback = opts;
         opts = undefined;
     }
 
+    // Check whether we're allowed to use the local cache
+    if (opts && opts.cached !== undefined) {
+        cacheEnabled = opts.cached;
+        delete opts.cache;
+    }
+
+    // Check whether we're allowed to locally cache the result
+    if (opts && opts.cacheResult !== undefined) {
+        cacheResult = opts.cacheResult;
+        delete opts.cacheResult;
+    }
+
+    // Check if we're using the local cache
+    if (cacheEnabled && this.cache[key] !== undefined) {
+        result = this.cache[key];
+        this.log.debug('get', '/' + this.prefix + key, result, '(cached)');
+        if (!_.isFunction(callback)) return result;
+        return callback(null, result);
+    }
+
     // Handle calling synchronously
     if (!_.isFunction(callback)) {
         result = this.client().getSync(this.prefix + key);
-        this.log.silly("Get result:", result);
+        this.log.silly("etcd get result:", result);
         result = this._parseResult(result);
         if (result === undefined) {
-            // XXX Jake: Need to memoize this
-            this.log.debug('get', '/' + this.prefix + key, 'undefined');
+            this.log.debug('get', '/' + this.prefix + key, def, def !==
+                    undefined ? '(default)' : '');
+            if (cacheResult && def !== undefined) this.cache[key] = def;
             return def;
         }
+        if (cacheResult) this.cache[key] = result;
         return result;
     }
 
@@ -60,7 +86,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
 
     this.client().get(this.prefix + key, function (err, result) {
         result = {err: err, body: result};
-        this.log.silly("Get result async:", result);
+        this.log.silly("etcd get async result:", result);
         try {
             result = this._parseResult(result); 
         }
@@ -68,10 +94,11 @@ Config.prototype.get = function get (key, def, opts, callback) {
             callback(err);
         }
         if (result === undefined){
-            // XXX Jake: Memoize here
-            this.log.debug('get', '/' + this.prefix + key, 'undefined');
+            this.log.debug('get', '/' + this.prefix + key, def, '(default)');
+            if (cacheResult) this.cache[key] = def;
             return callback(null, def);
         }
+        if (cacheResult) this.cache[key] = result;
         callback(null, result);
     }.bind(this));
 };
@@ -84,6 +111,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
  * @param value - New value to set (must be JSON serializable)
  */
 Config.prototype.set = function set (key, value, opts, callback) {
+    var cacheOnly;
     var result;
     var json_value;
 
@@ -92,18 +120,32 @@ Config.prototype.set = function set (key, value, opts, callback) {
     if (!_.isString(value)) json_value = JSON.stringify(value);
     else json_value = value;
 
-    this.log.debug('set', '/' + this.prefix + key, json_value);
-
     if (_.isFunction(opts)) {
         callback = opts;
         opts = undefined;
     }
 
+    if (opts && opts.cacheOnly !== undefined) {
+        cacheOnly = opts.cacheOnly;
+        delete opts.cacheOnly;
+    }
+
+    this.log.debug('set', '/' + this.prefix + key, json_value, cacheOnly ?
+            '(cache only)' : '');
+
+    // Only update things locally, do not write to etcd
+    if (cacheOnly) {
+        if (this.cacheEnabled) this.cache[key] = value;
+        if (!_.isFunction(callback)) return this;
+        return callback(null, value);
+    }
+
     // Handle calling synchronously
     if (!_.isFunction(callback)) {
         result = this.client().setSync(this.prefix + key, json_value, opts);
-        this.log.silly("Set result:", result);
+        this.log.silly("etcd set result:", result);
         if (result.err) throw result.err;
+        if (this.cacheEnabled) this.cache[key] = value;
         return this;
     }
 
@@ -111,7 +153,8 @@ Config.prototype.set = function set (key, value, opts, callback) {
     this.client().set(this.prefix + key, json_value, opts,
             function (err, result) {
         if (err) return callback(err);
-        this.log.silly("Set result async:", result);
+        this.log.silly("etcd set async result:", result);
+        if (this.cacheEnabled) this.cache[key] = value;
         callback(null, value);
     }.bind(this));
 
@@ -130,7 +173,7 @@ Config.prototype.dump = function dump () {
 
     if (result.err) throw result.err;
     if (!result.body || !result.body.node || !result.body.node.nodes) {
-        this.log.warn("Unknown result:", result);
+        this.log.warn("etcd unknown result:", result);
         return;
     }
 
@@ -170,13 +213,15 @@ Config.prototype.clear = function clear () {
         if (result.err.errorCode === 100) return;
         throw result.err;
     }
-    this.log.silly("Clear result:", result);
+    this.log.silly("etcd delete result:", result);
 
     // Handle a missing body (shouldn't happen?)
     if (!result.body) {
-        this.log.warn("Unknown result:", result);
+        this.log.warn("etcd unknown result:", result);
         return;
     }
+
+    if (this.cacheEnabled) this.cache = {};
 
     this.log.debug(result.body.action, result.body.node.key);
 };
@@ -204,21 +249,21 @@ Config.prototype._parseResult = function _parseResult (result) {
     if (result.err) {
         // errorCode 100 is a missing key, so we return undefined
         if (result.err.errorCode == 100) return;
-        this.log.silly("Error result:", result);
+        this.log.silly("etcd error result:", result);
         // Otherwise we throw the error so it can propagate up the stack
         throw result.err;
     }
 
     // Handle a missing body (shouldn't happen?)
     if (!result.body) {
-        this.log.warn("Unknown result:", result);
+        this.log.warn("etcd unknown result:", result);
         return;
     }
 
     // Handle a missing node (also shouldn't happen?)
     body = result.body;
     if (!body.node) {
-        this.log.warn("Missing node:", body);
+        this.log.warn("etcd missing node:", body);
         return;
     }
 
@@ -245,6 +290,7 @@ Config.prototype._parseResult = function _parseResult (result) {
 var _getEnvHosts; // _getEnvHosts(hosts)
 init = function init (hosts, opts) {
     var defaults = {
+        cache: true,
         prefix: 'config/',
         logLevel: 'critical',
         allowClear: false,
@@ -256,6 +302,8 @@ init = function init (hosts, opts) {
     opts = opts || {};
     opts = _.defaults(opts, defaults);
 
+    assert(_.isBoolean(opts.cache), "cache must be boolean");
+
     // Ensure prefix is a string without extra whitspace and ends with a slash
     assert(_.isString(opts.prefix), "prefix must be string");
     opts.prefix = _.trim(opts.prefix);
@@ -263,16 +311,22 @@ init = function init (hosts, opts) {
     opts.prefix += '/';
 
     // Ensure that the sslopts has the correct format
-    if (opts.ssl){
+    if (opts.ssl) {
         assert(_.isPlainObject(opts.ssl), "ssl options must be object");
     }
 
+    if (opts.cache) {
+        this.cache = {};
+    }
+
+    this.cacheEnabled = opts.cache;
     this.prefix = opts.prefix;
     this.sslopts = opts.ssl;
     this.hosts = _getEnvHosts(hosts);
     this.allowClear = opts.allowClear;
     this.log = new Log();
     this.log.level(this.logLevel);
+
 };
 
 

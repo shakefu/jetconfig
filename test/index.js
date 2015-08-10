@@ -18,6 +18,7 @@ before(function (done) {
         res.body.node.value !== pkg.version ){
         return done(new Error("etcd not working properly, aborting tests"));
     }
+    // Uncomment this to get helpful debug logging for all the tests
     // process.env.JETCONFIG_LOGLEVEL = 'debug';
     done();
 });
@@ -88,6 +89,11 @@ describe("Config", function () {
             var conf = new Config({prefix: '/bar'});
             conf.prefix.should.equal('bar/');
         });
+
+        it("should require cache option to be boolean", function () {
+            expect(function () { new Config({cache: 'foo'}); }) // jshint ignore:line
+                .to.throw("cache must be boolean");
+        });
     });
 
     describe('#get()', function (){
@@ -131,7 +137,11 @@ describe("Config", function () {
         var conf;
 
         before(function (){
-            conf = new Config();
+            conf = new Config({
+                cache: false,
+                allowClear: true,
+            });
+            conf.clear();
         });
 
         it("should work with a callback", function (done) {
@@ -176,6 +186,17 @@ describe("Config", function () {
         it("should work for a array", function () {
             conf.set('array', ['a', 2, false]);
             conf.get('array').should.eql(['a', 2, false]);
+        });
+
+        it("should set and retrieve cache-only values", function () {
+            var cache_conf = new Config();
+            cache_conf.set('test-cache-only', 'cached', {cacheOnly: true});
+            cache_conf.get('test-cache-only').should.equal('cached');
+        });
+
+        it("should not set cache-only values if cache is off", function () {
+            conf.set('test-cache-off', 'cached', {cacheOnly: true});
+            expect(conf.get('test-cache-off')).to.be.undefined;
         });
     });
 
