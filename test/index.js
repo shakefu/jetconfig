@@ -148,22 +148,32 @@ describe("Config", function () {
             });
         });
 
-        it("should work for a lot of value types", function () {
+        it("should work for a string", function () {
             conf.set('string', 'a');
             conf.get('string').should.equal('a');
+        });
 
+        it("should work for a number", function () {
             conf.set('number', 32);
             conf.get('number').should.equal(32);
+        });
 
+        it("should work for a float", function () {
             conf.set('float', 5.5);
             conf.get('float').should.equal(5.5);
+        });
 
+        it("should work for a object", function () {
             conf.set('object', {'foo': 'bar'});
             conf.get('object').should.eql({'foo': 'bar'});
+        });
 
+        it("should work for a bool", function () {
             conf.set('bool', false);
             conf.get('bool').should.equal(false);
+        });
 
+        it("should work for a array", function () {
             conf.set('array', ['a', 2, false]);
             conf.get('array').should.eql(['a', 2, false]);
         });
