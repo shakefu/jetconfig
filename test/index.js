@@ -111,7 +111,6 @@ describe("Config", function () {
         });
 
         it("should work a callback and existing value", function (done) {
-            conf.log.level('silly');
             conf.get('existing', function (err, val) {
                 if (err) return done(err);
                 expect(val).to.not.be.undefined;
@@ -121,30 +120,58 @@ describe("Config", function () {
         });
     });
 
+    describe('#set()', function () {
+        var conf;
+
+        before(function (){
+            conf = new Config();
+            conf.log.level('debug');
+        });
+
+        it("should work with a callback", function (done) {
+            conf.set('set_callback', true, function (err, value) {
+                if (err) return done(err);
+                expect(value).to.not.be.undefined;
+                value.should.equal(true);
+                conf.get('set_callback', function (err, value) {
+                    if (err) return done(err);
+                    expect(value).to.not.be.undefined;
+                    value.should.equal(true);
+                    done();
+                });
+            });
+        });
+
+    });
+
+    describe('log', function () {
+        var conf;
+
+        before(function (){
+            conf = new Config();
+        });
+
+        describe('#level()', function () {
+            it("should throw an error for unknown log levels", function () {
+                expect(function () { conf.log.level('foolish'); })
+                    .to.throw("Unknown log level 'foolish'");
+            });
+
+            it("should set a level correctly", function () {
+                conf.log.level().should.equal('critical'); // Defaults critical
+                conf.log.level('debug');
+                conf.log.level().should.equal('debug'); // Changed to debug
+                conf.log.level('critical');
+                conf.log.level().should.equal('critical');
+            });
+        });
+
+        describe('#debug()', function () {
+            it("should log appropriately when the level is set", function () {
+                conf.log.level('debug');
+                // conf.log.debug("Testing");
+            });
+        });
+    });
 });
 
-describe('Log', function () {
-    var conf;
-
-    before(function (){
-        conf = new Config();
-    });
-
-    it("should throw an error for unknown log levels", function () {
-        expect(function () { conf.log.level('foolish'); })
-            .to.throw("Unknown log level 'foolish'");
-    });
-
-    it("should set a level correctly", function () {
-        conf.log.level().should.equal(3); // Defaults to critical
-        conf.log.level('debug');
-        conf.log.level().should.equal(0); // Changed to debug
-        conf.log.level('critical');
-        conf.log.level().should.equal(3);
-    });
-
-    it("should log appropriately when the level is set", function () {
-        conf.log.level('debug');
-        // conf.log.debug("Testing");
-    });
-});

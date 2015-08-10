@@ -59,6 +59,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
 
     this.client().get(this.prefix + key, function (err, result) {
         result = {err: err, body: result};
+        this.log.silly("Get result async:", result);
         try {
             result = this._parseResult(result); 
         }
@@ -82,11 +83,11 @@ Config.prototype.get = function get (key, def, opts, callback) {
  */
 Config.prototype.set = function set (key, value, opts, callback) {
     var result;
+    var json_value;
 
     assert(_.isString(key), "key must be a String");
-    key = this.prefix + key;
 
-    if (!_.isString(value)) value = JSON.stringify(value);
+    if (!_.isString(value)) json_value = JSON.stringify(value);
 
     this.log.debug('set', key, value);
 
@@ -96,9 +97,20 @@ Config.prototype.set = function set (key, value, opts, callback) {
     }
 
     if (!_.isFunction(callback)) {
-        result = this.client().setSync(key, value, opts);
+        result = this.client().setSync(this.prefix + key, json_value, opts);
         this.log.silly("Set result:", result);
+        if (result.err) throw result.err;
+        return this;
     }
+
+    this.client().set(this.prefix + key, json_value, opts,
+            function (err, result) {
+        if (err) return callback(err);
+        this.log.silly("Set result async:", result);
+        callback(null, value);
+    }.bind(this));
+
+    return this;
 };
 
 
