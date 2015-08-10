@@ -11,12 +11,14 @@ var Config = require('../index.js');
 
 before(function (done) {
     var etcd = new Etcd();
-    etcd.setSync('test/jetconfig', pkg.version, {ttl: 1});
-    var res = etcd.getSync('test/jetconfig');
+    var key = 'jetconfig/test/version';
+    etcd.setSync(key, pkg.version, {ttl: 1});
+    var res = etcd.getSync(key);
     if (!res || !res.body || !res.body.node ||
         res.body.node.value !== pkg.version ){
         return done(new Error("etcd not working properly, aborting tests"));
     }
+    // process.env.JETCONFIG_LOGLEVEL = 'debug';
     done();
 });
 
@@ -171,7 +173,7 @@ describe("Config", function () {
         var conf;
 
         before(function () {
-            conf = new Config({prefix: 'dump'});
+            conf = new Config({prefix: 'jetconfig/dump'});
         });
 
         it("should work", function () {
@@ -185,6 +187,37 @@ describe("Config", function () {
                 'ph.beta': 'b',
                 'ph.obj': {'o': 1}
             });
+        });
+    });
+
+    describe('#clear()', function () {
+        var conf;
+
+        before(function () {
+            conf = new Config({
+                prefix: 'jetconfig/test/clear',
+                allowClear: true
+            });
+        });
+
+        it("should return undefined if there's no keys", function () {
+            expect(conf.clear()).to.be.undefined;
+        });
+
+        it("should remove the keys", function () {
+            conf.set('test.key', 'one');
+            conf.set('test.other', 2);
+            conf.set('test.obj', {'a': 'b'});
+            conf.clear();
+            expect(conf.get('test.key')).to.be.undefined;
+            expect(conf.get('test.other')).to.be.undefined;
+            expect(conf.get('test.obj')).to.be.undefined;
+        });
+
+        it("should throw an error if it's not allowed", function () {
+            var conf = new Config();
+            expect(function () { conf.clear(); })
+                .to.throw("clear() is not allowed on this instance");
         });
     });
 

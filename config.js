@@ -43,13 +43,13 @@ Config.prototype.get = function get (key, def, opts, callback) {
     }
 
     // Handle calling synchronously
-    if (!callback) {
+    if (!_.isFunction(callback)) {
         result = this.client().getSync(this.prefix + key);
         this.log.silly("Get result:", result);
         result = this._parseResult(result);
         if (result === undefined) {
             // XXX Jake: Need to memoize this
-            this.log.debug("Key not found:", key);
+            this.log.debug('get', '/' + this.prefix + key, 'undefined');
             return def;
         }
         return result;
@@ -69,6 +69,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
         }
         if (result === undefined){
             // XXX Jake: Memoize here
+            this.log.debug('get', '/' + this.prefix + key, 'undefined');
             return callback(null, def);
         }
         callback(null, result);
@@ -91,7 +92,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
     if (!_.isString(value)) json_value = JSON.stringify(value);
     else json_value = value;
 
-    this.log.debug('set', key, json_value);
+    this.log.debug('set', '/' + this.prefix + key, json_value);
 
     if (_.isFunction(opts)) {
         callback = opts;
@@ -150,6 +151,38 @@ Config.prototype.dump = function dump () {
 
 
 /**
+ * Loads a jetconfig dump
+ */
+Config.prototype.load = function load (config) {
+    return config;
+};
+
+
+/**
+ * Clears all configuration stored in etcd
+ */
+Config.prototype.clear = function clear () {
+    if (!this.allowClear)
+        throw new Error("clear() is not allowed on this instance");
+
+    var result = this.client().rmdirSync(this.prefix, {recursive: true});
+    if (result.err) {
+        if (result.err.errorCode === 100) return;
+        throw result.err;
+    }
+    this.log.silly("Clear result:", result);
+
+    // Handle a missing body (shouldn't happen?)
+    if (!result.body) {
+        this.log.warn("Unknown result:", result);
+        return;
+    }
+
+    this.log.debug(result.body.action, result.body.node.key);
+};
+
+
+/**
  * Return a configured Etcd instance ready for use.
  */
 Config.prototype.client = function client () {
@@ -186,6 +219,7 @@ Config.prototype._parseResult = function _parseResult (result) {
     body = result.body;
     if (!body.node) {
         this.log.warn("Missing node:", body);
+        return;
     }
 
     this.log.debug(body.action, body.node.key, body.node.value);
@@ -203,7 +237,7 @@ Config.prototype._parseResult = function _parseResult (result) {
 
 
 /**
- * Sets up the Config instnace
+ * Private helper to set up the Config instnace
  *
  * @param hosts {String|Object} - Etcd hosts
  * @param opts {Object} - Config options
@@ -212,7 +246,8 @@ var _getEnvHosts; // _getEnvHosts(hosts)
 init = function init (hosts, opts) {
     var defaults = {
         prefix: 'config/',
-        logLevel: 'critical'
+        logLevel: 'critical',
+        allowClear: false,
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -235,6 +270,7 @@ init = function init (hosts, opts) {
     this.prefix = opts.prefix;
     this.sslopts = opts.ssl;
     this.hosts = _getEnvHosts(hosts);
+    this.allowClear = opts.allowClear;
     this.log = new Log();
     this.log.level(this.logLevel);
 };
@@ -257,3 +293,29 @@ _getEnvHosts = function _getEnvHosts (hosts) {
 };
 
 
+/**
+ * Flatten an object into dot-notation keys
+ */
+Config.prototype._flatten = function(data) {
+    var result = {};
+    function recurse (cur, prop) {
+        if (Object(cur) !== cur) {
+            result[prop] = cur;
+        } else if (Array.isArray(cur)) {
+            for(var i=0, l=cur.length; i<l; i++)
+                 recurse(cur[i], prop ? prop+"."+i : ""+i);
+            if (l === 0)
+                result[prop] = [];
+        } else {
+            var isEmpty = true;
+            for (var p in cur) {
+                isEmpty = false;
+                recurse(cur[p], prop ? prop+"."+p : p);
+            }
+            if (isEmpty)
+                result[prop] = {};
+        }
+    }
+    recurse(data, "");
+    return result;
+};
