@@ -12,7 +12,12 @@ var Log = function Log (name) {
         silly: -1
     };
     _.assign(this._levels, _.invert(this._levels));
-    this._level = 3;
+    var loglevel = process.env.JETCONFIG_LOGLEVEL || 3;
+    if (!_.isNaN(Number(loglevel))) loglevel = Number(loglevel);
+    if (loglevel && this._levels[loglevel] !== undefined){
+        if (!_.isNumber(loglevel)) this._level = this._levels[loglevel];
+        else this._level = loglevel;
+    }
 };
 module.exports = Log;
 
@@ -62,21 +67,19 @@ var _formatLog = function _formatLog (args) {
         try {
             msg += JSON.stringify(arg, null, 2);
             continue;
-        }
-        catch (err) {
-        }
+        } catch (err) {}
         try {
             msg += arg.toString();
             continue;
-        }
-        catch (err) {
-        }
+        } catch (err) {}
+        try {
+            msg += String(arg);
+            continue;
+        } catch (err) {}
         try {
             msg += '' + arg;
             continue;
-        }
-        catch (err) {
-        }
+        } catch (err) {}
         msg += "[Object]";
     }
     return msg;
