@@ -31,13 +31,38 @@ var conf = new Config();
 
 Create a new jetconfig instance.
 
-* **`hosts`** (*Array|string*) - A host or list of hosts to use for the etcd
+* **`hosts`** (*Array|String*) - A host or list of hosts to use for the etcd
   cluster. This may be a single host as a string, an array of host strings, or
   a string of comma-separated hosts. (default: `'127.0.0.1:2379'`)
 
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
   here. 
 * **`options`** (*Object*) - Options object (optional)
+
+#### `.get(key, `*`[def], [options], [callback]`*`)`
+
+* **`key`** (*String*) - Key name to retrieve
+* **`def`** - Default value (optional)
+* **`options`** (*Object*) - Options to provide to etcd client (optional)
+* **`callback`** (*Function=*) - Callback (optional)
+
+Get the current value for `key`.
+
+#### `.set(key, value, `*`[options], [callback]`*`)`
+
+Sets a value and writes it to etcd.
+
+* **`key`** (*String*) - Key name to set
+* **`value`** - Value to set
+* **`options`** (*Object*) - Options to provide to etcd client (optional)
+* **`callback`** (*Function=*) - Callback (optional)
+
+#### `.log.level(`*`[level]`*`)`
+
+Set or get the current log level for the this instance.
+
+* **`level`** (*String*) - Sets the log level. If this is omitted, the current
+  level is returned as a string.
 
 ## License
 
