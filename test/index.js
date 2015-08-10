@@ -81,6 +81,11 @@ describe("Config", function () {
             var conf = new Config({prefix: 'foo'});
             conf.prefix.should.equal('foo/');
         });
+
+        it("should trim leading slashes on the prefix", function () {
+            var conf = new Config({prefix: '/bar'});
+            conf.prefix.should.equal('bar/');
+        });
     });
 
     describe('#get()', function (){
@@ -125,7 +130,6 @@ describe("Config", function () {
 
         before(function (){
             conf = new Config();
-            conf.log.level('debug');
         });
 
         it("should work with a callback", function (done) {
@@ -142,13 +146,72 @@ describe("Config", function () {
             });
         });
 
+        it("should work for a lot of value types", function () {
+            conf.set('string', 'a');
+            conf.get('string').should.equal('a');
+
+            conf.set('number', 32);
+            conf.get('number').should.equal(32);
+
+            conf.set('float', 5.5);
+            conf.get('float').should.equal(5.5);
+
+            conf.set('object', {'foo': 'bar'});
+            conf.get('object').should.eql({'foo': 'bar'});
+
+            conf.set('bool', false);
+            conf.get('bool').should.equal(false);
+
+            conf.set('array', ['a', 2, false]);
+            conf.get('array').should.eql(['a', 2, false]);
+        });
+    });
+
+    describe('#dump()', function () {
+        var conf;
+
+        before(function () {
+            conf = new Config({prefix: 'dump'});
+        });
+
+        it("should work", function () {
+            conf.set('ph.alpha', 'a');
+            conf.set('ph.beta', 'b');
+            conf.set('ph.obj', {'o': 1});
+            var dump = conf.dump();
+            expect(dump).to.not.be.undefined;
+            dump.should.eql({
+                'ph.alpha': 'a',
+                'ph.beta': 'b',
+                'ph.obj': {'o': 1}
+            });
+        });
     });
 
     describe('log', function () {
         var conf;
+        var JETCONFIG_LOGLEVEL;
 
-        before(function (){
+        before(function () {
+            // Ensure we don't break tests with environment vars
+            JETCONFIG_LOGLEVEL = process.env.JETCONFIG_LOGLEVEL;
+            delete process.env.JETCONFIG_LOGLEVEL;
             conf = new Config();
+        });
+
+        after(function () {
+            // Restore the environment
+            if (JETCONFIG_LOGLEVEL) {
+                process.env.JETCONFIG_LOGLEVEL = JETCONFIG_LOGLEVEL;
+            }
+        });
+
+        it("should allow the level to be set in the env", function () {
+            var env_conf;
+            process.env.JETCONFIG_LOGLEVEL = 'debug';
+            env_conf = new Config();
+            delete process.env.JETCONFIG_LOGLEVEL;
+            env_conf.log.level().should.equal('debug');
         });
 
         describe('#level()', function () {
