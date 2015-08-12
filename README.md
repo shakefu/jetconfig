@@ -86,7 +86,7 @@ Sets a value and writes it to etcd.
 ### `.dump()`
 
 Returns an object suitable for JSON serialization which represents a dump of
-the current configuration.
+the current configuration as defined in etcd.
 
 ### `.load(`*`[config], [options]`*`)`
 
