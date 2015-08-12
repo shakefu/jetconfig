@@ -23,6 +23,10 @@ running on `127.0.0.1:2379` and use a namespace prefix of `config/`.
 var Config = require('jetconfig');
 
 var conf = new Config();
+
+var my_setting = conf.get('my_setting');
+
+var defaults_allowed = conf.get('my_default', 'default value');
 ```
 
 ## API Documentation
@@ -57,6 +61,11 @@ Create a new jetconfig instance.
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
+Get the current value for `key`.
+
+If called synchronously, this method may throw exceptions if there are
+underlying client errors.
+
 * **`key`** (*String*) - Key name to retrieve
 * **`def`** - Default value (optional)
 * **`options`** (*Object*) - Options for this call (optional)
@@ -66,13 +75,15 @@ Create a new jetconfig instance.
     (default: `true`)
   * **`cacheOnly`** (*Boolean*) - Whether to only use the cache and not query
     etcd if the cache doesn't have a value (default: `false`)
-* **`callback`** (*Function=*) - Callback (optional)
-
-Get the current value for `key`.
+* **`callback`** (*Function=*) - Callback (optional). If omitted, this method
+  will return the value synchronously.
 
 ### `.set(key, value, `*`[options], [callback]`*`)`
 
 Sets a value and writes it to etcd.
+
+If called synchronously, this method may throw exceptions if there are
+underlying client errors.
 
 * **`key`** (*String*) - Key name to set
 * **`value`** - Value to set
@@ -102,8 +113,9 @@ If *load* is called multiple times, by default, the subsequent loads will be
 merged into the configuration cache. Specify the option `merge: false` if you
 want to instead clear the cache first.
 
-When writing to etcd, the configuration will always be merged instead of
-overwritten.
+When writing to etcd, the configuration will always be merged into the existing
+etcd configuration, instead of being overwritten. If you wish to overwrite the
+existing configuration, use `.clear()` first.
 
 * **`config`** (*String|Object*) - Configuration filename, JSON string, or
   Object to load (optional)
@@ -134,7 +146,6 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 ### `.client()`
 
 Return a reference to the underlying *node-etcd* client instance.
-
 
 ## Changelog
 
