@@ -34,13 +34,11 @@ Create a new jetconfig instance.
 * **`hosts`** (*Array|String*) - A host or list of hosts to use for the etcd
   cluster. This may be a single host as a string, an array of host strings, or
   a string of comma-separated hosts. (default: `'127.0.0.1:2379'`)
-
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
   here.
 * **`options`** (*Object*) - Options object (optional)
   * **`cache`** (*Boolean*) - Whether to allow local caching to speed up
     performance (default: `true`)
-
     It's highly recommended that you leave this enabled, unless you
     specifically need realtime queries of etcd. Etcd is not super duper fast,
     so if you're using a lot of configuration keys in your application,
@@ -81,7 +79,6 @@ Sets a value and writes it to etcd.
 * **`options`** (*Object*) - Options for this call (optional)
   * **`cacheOnly`** (*Boolean*) - Whether to only write to the local cache and
     not etcd (default: `false`)
-
     If *cacheOnly* is *true* and the config instance does not have caching
     enabled, this will not set the value anywhere.
 * **`callback`** (*Function=*) - Callback (optional)
