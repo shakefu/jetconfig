@@ -169,6 +169,8 @@ Return a reference to the underlying *node-etcd* client instance.
 
 * **1.0.0** - Initital release
 
+  *Released August 12, 2015.*
+
 ## License
 
 Copyright 2015 Jacob Alheid
