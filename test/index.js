@@ -264,6 +264,23 @@ describe("Config", function () {
                 'bar': 'foo'
             });
         });
+
+        it("should load the current etcd config without args", function () {
+            var opts = {prefix: 'jetconfig/test/load_etcd'};
+            var conf = new Config(opts);
+            var res;
+            conf.set('test.conf1', {a: {b: 2}});
+            conf.set('test.conf2', true);
+            conf = new Config(opts);
+            conf.cache.should.eql({});
+            res = conf.load();
+            res.should.eql({
+                'test.conf1': {a: {b: 2}},
+                'test.conf2': true
+            });
+            conf.get('test.conf1', {cacheOnly: true}).should.eql({a: {b: 2}});
+            conf.get('test.conf2', {cacheOnly: true}).should.equal(true);
+        });
     });
 
     describe('#clear()', function () {

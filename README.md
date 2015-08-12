@@ -66,6 +66,8 @@ Create a new jetconfig instance.
     `true`)
   * **`cacheResult`** (*Boolean*) - Whether to store the result in the cache
     (default: `true`)
+  * **`cacheOnly`** (*Boolean*) - Whether to only use the cache and not query
+    etcd if the cache doesn't have a value (default: `false`)
 * **`callback`** (*Function=*) - Callback (optional)
 
 Get the current value for `key`.

@@ -30,6 +30,7 @@ exports.Config = Config;
 Config.prototype.get = function get (key, def, opts, callback) {
     var cacheEnabled = this.cacheEnabled;
     var cacheResult = cacheEnabled;
+    var cacheOnly = false;
     var result;
 
     assert(_.isString(key), "key must be a String");
@@ -58,12 +59,22 @@ Config.prototype.get = function get (key, def, opts, callback) {
         delete opts.cacheResult;
     }
 
+    // Check whether we're only using the cache
+    if (opts && opts.cacheOnly === true) {
+        cacheOnly = true;
+    }
+
     // Check if we're using the local cache
     if (cacheEnabled && this.cache[key] !== undefined) {
         result = this.cache[key];
         this.log.debug('get', '/' + this.prefix + key, result, '(cached)');
         if (!_.isFunction(callback)) return result;
         return callback(null, result);
+    }
+
+    // Don't query etcd if we're only using cache
+    if (cacheEnabled && cacheOnly) {
+        return undefined;
     }
 
     // Handle calling synchronously
@@ -210,8 +221,14 @@ Config.prototype.load = function load (config, opts) {
         merge: true
     });
 
+    // If the given config is an object, flatten the keys
     if (_.isPlainObject(config)) {
         config = _flatten(config);
+    }
+
+    // If we don't have a config, load the existing etcd config
+    if (config === undefined) {
+        config = this.dump();
     }
 
     // If we're not merging, clear the cache first
