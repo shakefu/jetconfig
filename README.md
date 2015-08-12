@@ -27,7 +27,7 @@ var conf = new Config();
 
 ## API Documentation
 
-#### `new Config(`*`[hosts], [options]`*`)`
+### `new Config(`*`[hosts], [options]`*`)`
 
 Create a new jetconfig instance.
 
@@ -38,11 +38,11 @@ Create a new jetconfig instance.
   here.
 * **`options`** (*Object*) - Options object (optional)
   * **`cache`** (*Boolean*) - Whether to allow local caching to speed up
-    performance (default: `true`)
-    It's highly recommended that you leave this enabled, unless you
-    specifically need realtime queries of etcd. Etcd is not super duper fast,
-    so if you're using a lot of configuration keys in your application,
-    disabling this cache could cause your application to grind to a halt.
+    performance (default: `true`). It's highly recommended that you leave this
+    enabled, unless you specifically need realtime queries of etcd. Etcd is not
+    super duper fast, so if you're using a lot of configuration keys in your
+    application, disabling this cache could cause your application to grind to
+    a halt.
   * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
   * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
     documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
@@ -55,7 +55,7 @@ Create a new jetconfig instance.
   * **`allowClear`** (*Boolean*) - Whether to allow the `.clear()` method on
     this instance (default: `false`)
 
-#### `.get(key, `*`[def], [options], [callback]`*`)`
+### `.get(key, `*`[def], [options], [callback]`*`)`
 
 * **`key`** (*String*) - Key name to retrieve
 * **`def`** - Default value (optional)
@@ -70,7 +70,7 @@ Create a new jetconfig instance.
 
 Get the current value for `key`.
 
-#### `.set(key, value, `*`[options], [callback]`*`)`
+### `.set(key, value, `*`[options], [callback]`*`)`
 
 Sets a value and writes it to etcd.
 
@@ -78,17 +78,17 @@ Sets a value and writes it to etcd.
 * **`value`** - Value to set
 * **`options`** (*Object*) - Options for this call (optional)
   * **`cacheOnly`** (*Boolean*) - Whether to only write to the local cache and
-    not etcd (default: `false`)
-    If *cacheOnly* is *true* and the config instance does not have caching
-    enabled, this will not set the value anywhere.
+    not etcd (default: `false`). If *cacheOnly* is *true* and the config
+    instance does not have caching enabled, this will not set the value
+    anywhere.
 * **`callback`** (*Function=*) - Callback (optional)
 
-#### `.dump()`
+### `.dump()`
 
 Returns an object suitable for JSON serialization which represents a dump of
 the current configuration.
 
-#### `.load(`*`[config], [options]`*`)`
+### `.load(`*`[config], [options]`*`)`
 
 Load the current configuration in etcd into the local cache.
 
@@ -113,7 +113,7 @@ overwritten.
   * **`merge`** (*Boolean*) - Whether to merge the existing cache with the
     newly loaded config, or clear it first
 
-#### `.clear()`
+### `.clear()`
 
 Clears all the stored keys for the given config object in etcd. This must be
 explicitly enabled by passing the `allowClear: true` option to the constructor.
@@ -122,7 +122,7 @@ explicitly enabled by passing the `allowClear: true` option to the constructor.
   * **`cacheOnly`** (*Boolean*) - Whether to only clear the configuration cache
     (default: `false`)
 
-#### `.log.level(`*`[level]`*`)`
+### `.log.level(`*`[level]`*`)`
 
 Set or get the current log level for the this instance.
 
@@ -131,7 +131,7 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
   level is returned as a string.
 
-#### `.client()`
+### `.client()`
 
 Return a reference to the underlying *node-etcd* client instance.
 
