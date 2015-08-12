@@ -1,6 +1,6 @@
 {
   "name": "jetconfig",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "etcd based configuration for node.js",
   "main": "index.js",
   "scripts": {
