@@ -14,7 +14,7 @@ etcd based configuration for node.js
 
 ## Installation
 
-jetconfig is on [npmjs.org].
+jetconfig is on [npmjs.org](https://www.npmjs.com/package/jetconfig).
 
 ```bash
 $ npm install --save jetconfig
