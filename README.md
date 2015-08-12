@@ -3,6 +3,15 @@ etcd based configuration for node.js
 
 [![Build Status](https://travis-ci.org/shakefu/jetconfig.svg)](https://travis-ci.org/shakefu/jetconfig)
 
+*jetconfig* has the following features:
+
+* Namespace prefixes for configurations to allow individual apps or modules to
+  operate using a single etcd cluster
+* Synchronous and callbacks supported for most API methods
+* In-process caching of configuration settings by default for best performance
+* Cache-only operating mode for when etcd is not available
+* Loading/dumping of entire configuration for backups or test configurations
+
 ## Installation
 
 jetconfig is on [npmjs.org].
@@ -24,9 +33,18 @@ var Config = require('jetconfig');
 
 var conf = new Config();
 
-var my_setting = conf.get('my_setting');
+// Load the existing configuration from etcd
+conf.load();
 
-var defaults_allowed = conf.get('my_default', 'default value');
+// Get a value from etcd
+var my_setting = conf.get('app.setting');
+
+// Get a value from etcd, but use the default if it doesn't exist
+var defaults_allowed = conf.get('app.someSetting', 'default value');
+
+// Write a new value to etcd
+conf.set('some.setting.here', 'new value');
+
 ```
 
 ## API Documentation
