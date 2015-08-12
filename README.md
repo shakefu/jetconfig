@@ -89,10 +89,12 @@ Sets a value and writes it to etcd.
 Returns an object suitable for JSON serialization which represents a dump of
 the current configuration.
 
-#### `.load(config, `*`[options]`*`)`
+#### `.load(`*`[config], [options]`*`)`
 
-Load a configuration file, JSON string, or JavaScript object into a
-configuration instnace.
+Load the current configuration in etcd into the local cache.
+
+If *config* is specified, it loads a configuration file, JSON string, or
+JavaScript object into a configuration instance.
 
 By default, the configuration is not written to etcd, and only loaded into the
 configuration cache.
@@ -105,7 +107,7 @@ When writing to etcd, the configuration will always be merged instead of
 overwritten.
 
 * **`config`** (*String|Object*) - Configuration filename, JSON string, or
-  Object to load
+  Object to load (optional)
 * **`options`** (*Object*) - Options for loading the configuration
   * **`cacheOnly`** (*Boolean*) - Whether to only load it into cache or to
     write the loaded configuration to etcd (default: `true`)
