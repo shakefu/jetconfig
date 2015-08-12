@@ -1,10 +1,13 @@
 {
   "name": "jetconfig",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "etcd based configuration for node.js",
   "main": "index.js",
   "scripts": {
     "test": "jshint --verbose *.js test/*.js && mocha test/index.js"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "type": "git",
