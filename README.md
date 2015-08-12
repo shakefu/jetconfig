@@ -156,6 +156,9 @@ explicitly enabled by passing the `allowClear: true` option to the constructor.
 
 Set or get the current log level for the this instance.
 
+Log level may be one of `'silly'`, `'debug'`, `'info'`, `'warn'`, or
+`'critical'`. The default is `'critical'`.
+
 This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
