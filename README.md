@@ -33,7 +33,7 @@ var Config = require('jetconfig');
 
 var conf = new Config();
 
-// Load the existing configuration from etcd
+// Load and locally cache the existing configuration from etcd
 conf.load();
 
 // Get a value from etcd
