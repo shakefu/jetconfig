@@ -125,7 +125,8 @@ If *config* is specified, it loads a configuration file, JSON string, or
 JavaScript object into a configuration instance.
 
 By default, the configuration is not written to etcd, and only loaded into the
-configuration cache.
+configuration cache. Pass the option `cacheOnly: false` if you wish to write
+the loaded configuration to etcd as well.
 
 If *load* is called multiple times, by default, the subsequent loads will be
 merged into the configuration cache. Specify the option `merge: false` if you
