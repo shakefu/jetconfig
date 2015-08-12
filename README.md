@@ -36,7 +36,7 @@ Create a new jetconfig instance.
   a string of comma-separated hosts. (default: `'127.0.0.1:2379'`)
 
   If `JETCONFIG_ETCD` is set in the Env, it will override whatever is passed
-  here. 
+  here.
 * **`options`** (*Object*) - Options object (optional)
   * **`cache`** (*Boolean*) - Whether to allow local caching to speed up
     performance (default: `true`)
@@ -89,10 +89,37 @@ Sets a value and writes it to etcd.
 Returns an object suitable for JSON serialization which represents a dump of
 the current configuration.
 
+#### `.load(config, `*`[options]`*`)`
+
+Load a configuration file, JSON string, or JavaScript object into a
+configuration instnace.
+
+By default, the configuration is not written to etcd, and only loaded into the
+configuration cache.
+
+If *load* is called multiple times, by default, the subsequent loads will be
+merged into the configuration cache. Specify the option `merge: false` if you
+want to instead clear the cache first.
+
+When writing to etcd, the configuration will always be merged instead of
+overwritten.
+
+* **`config`** (*String|Object*) - Configuration filename, JSON string, or
+  Object to load
+* **`options`** (*Object*) - Options for loading the configuration
+  * **`cacheOnly`** (*Boolean*) - Whether to only load it into cache or to
+    write the loaded configuration to etcd (default: `true`)
+  * **`merge`** (*Boolean*) - Whether to merge the existing cache with the
+    newly loaded config, or clear it first
+
 #### `.clear()`
 
 Clears all the stored keys for the given config object in etcd. This must be
 explicitly enabled by passing the `allowClear: true` option to the constructor.
+
+* **`options`** (*Object*) - Additional options for clearing
+  * **`cacheOnly`** (*Boolean*) - Whether to only clear the configuration cache
+    (default: `false`)
 
 #### `.log.level(`*`[level]`*`)`
 
@@ -107,6 +134,10 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 Return a reference to the underlying *node-etcd* client instance.
 
+
+## Changelog
+
+* **1.0.0** - Initital release
 
 ## License
 

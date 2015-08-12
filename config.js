@@ -88,7 +88,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
         result = {err: err, body: result};
         this.log.silly("etcd get async result:", result);
         try {
-            result = this._parseResult(result); 
+            result = this._parseResult(result);
         }
         catch (err) {
             callback(err);
@@ -117,14 +117,17 @@ Config.prototype.set = function set (key, value, opts, callback) {
 
     assert(_.isString(key), "key must be a String");
 
+    // Coerce the value to a JSON string
     if (!_.isString(value)) json_value = JSON.stringify(value);
     else json_value = value;
 
+    // Handle optional arguments
     if (_.isFunction(opts)) {
         callback = opts;
         opts = undefined;
     }
 
+    // Decide if this is being set to the local cache only
     if (opts && opts.cacheOnly !== undefined) {
         cacheOnly = opts.cacheOnly;
         delete opts.cacheOnly;
@@ -177,15 +180,18 @@ Config.prototype.dump = function dump () {
         return;
     }
 
+    // Iterate over the returned nodes
     nodes = result.body.node.nodes;
     for (var i=0; i < nodes.length; i++) {
         var key = nodes[i].key;
         var value = nodes[i].value;
+        // Try to get the value from a JSON string
         try {
             value = JSON.parse(value);
         }
         catch (err) {
         }
+        // Trim off the leading namespace of the key
         if (_.startsWith(key, ns)) key = key.slice(ns.length);
         obj[key] = value;
     }
@@ -196,34 +202,67 @@ Config.prototype.dump = function dump () {
 /**
  * Loads a jetconfig dump
  */
-Config.prototype.load = function load (config) {
-    return config;
+var _flatten; // _flatten(Object)
+Config.prototype.load = function load (config, opts) {
+    opts = opts || {};
+    opts = _.defaults(opts, {
+        cacheOnly: true,
+        merge: true
+    });
+
+    if (_.isPlainObject(config)) {
+        config = _flatten(config);
+    }
+
+    // If we're not merging, clear the cache first
+    if (opts.merge === false) this.cache = {};
+
+    // Load the config into cache
+    _.assign(this.cache, config);
+
+    // Write to etcd
+    if (opts.cacheOnly === false) {
+        _.forOf(config, function (key, value) {
+            this.set(key, value);
+        }, this);
+    }
+
+    return this.cache;
 };
 
 
 /**
  * Clears all configuration stored in etcd
  */
-Config.prototype.clear = function clear () {
+Config.prototype.clear = function clear (opts) {
     if (!this.allowClear)
         throw new Error("clear() is not allowed on this instance");
 
-    var result = this.client().rmdirSync(this.prefix, {recursive: true});
-    if (result.err) {
-        if (result.err.errorCode === 100) return;
-        throw result.err;
+    opts = opts || {};
+    opts = _.defaults(opts, {cacheOnly: false});
+
+    if (opts.cacheOnly === false) {
+        var result = this.client().rmdirSync(this.prefix, {recursive: true});
+        if (result.err) {
+            if (result.err.errorCode === 100) return;
+            throw result.err;
+        }
+        this.log.silly("etcd delete result:", result);
+
+        // Handle a missing body (shouldn't happen?)
+        if (!result.body) {
+            this.log.warn("etcd unknown result:", result);
+            return;
+        }
+
+        this.log.debug(result.body.action, result.body.node.key);
     }
-    this.log.silly("etcd delete result:", result);
 
-    // Handle a missing body (shouldn't happen?)
-    if (!result.body) {
-        this.log.warn("etcd unknown result:", result);
-        return;
+    // Clear the cache
+    if (this.cacheEnabled) {
+        this.log.debug("cache cleared");
+        this.cache = {};
     }
-
-    if (this.cacheEnabled) this.cache = {};
-
-    this.log.debug(result.body.action, result.body.node.key);
 };
 
 
@@ -350,21 +389,24 @@ _getEnvHosts = function _getEnvHosts (hosts) {
 /**
  * Flatten an object into dot-notation keys
  */
-Config.prototype._flatten = function(data) {
+_flatten = function(data) {
     var result = {};
     function recurse (cur, prop) {
         if (Object(cur) !== cur) {
             result[prop] = cur;
         } else if (Array.isArray(cur)) {
-            for(var i=0, l=cur.length; i<l; i++)
-                 recurse(cur[i], prop ? prop+"."+i : ""+i);
-            if (l === 0)
-                result[prop] = [];
+            result[prop] = cur;
         } else {
             var isEmpty = true;
             for (var p in cur) {
                 isEmpty = false;
-                recurse(cur[p], prop ? prop+"."+p : p);
+                // If we're at the top level, don't flatten already dotted keys
+                if (prop === "" && p.match(/.+\..+/)) {
+                    result[p] = cur[p];
+                }
+                else {
+                    recurse(cur[p], prop ? prop + "." + p : p);
+                }
             }
             if (isEmpty)
                 result[prop] = {};

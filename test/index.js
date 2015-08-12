@@ -221,6 +221,51 @@ describe("Config", function () {
         });
     });
 
+    describe('#load()', function () {
+        var conf;
+
+        before(function () {
+            conf = new Config({
+                prefix: 'jetconfig/test/load',
+                allowClear: true
+            });
+        });
+
+        after(function () {
+            conf.clear();
+        });
+
+        it("should flatten objects", function () {
+            var res = new Config().load({a: {b: {c: 1}}});
+            res.should.eql({'a.b.c': 1});
+        });
+
+        it("should not flatten arrays", function () {
+            var res = new Config().load({
+                a: {arr: ['a', 'b', 3]}
+            });
+            res.should.eql({'a.arr': ['a', 'b', 3]});
+        });
+
+        it("should not flatten key values that already have dots", function () {
+            var res = new Config().load({'a.b.c': {'a': 1}});
+            res.should.eql({'a.b.c': {'a': 1}});
+        });
+
+        it("should merge multiple loads into cache", function () {
+            var conf = new Config();
+            var res;
+            conf.load({a: {b: {c: 1}}, foo: 'bar'});
+            res = conf.load({a: {b: {c: 2, d: 1}}, bar: 'foo'});
+            res.should.eql({
+                'a.b.c': 2,
+                'a.b.d': 1,
+                'foo': 'bar',
+                'bar': 'foo'
+            });
+        });
+    });
+
     describe('#clear()', function () {
         var conf;
 
@@ -249,6 +294,12 @@ describe("Config", function () {
             var conf = new Config();
             expect(function () { conf.clear(); })
                 .to.throw("clear() is not allowed on this instance");
+        });
+
+        it("should only clear the cache if that's specified", function () {
+            conf.set('test.cacheOnly', true);
+            conf.clear({cacheOnly: true});
+            conf.get('test.cacheOnly').should.equal(true);
         });
     });
 
