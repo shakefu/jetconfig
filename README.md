@@ -168,7 +168,7 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
   level is returned as a string.
 
-### `.client()`
+### `.client(`*`[options]`*`)`
 
 Return a reference to the underlying *node-etcd* client instance.
 
