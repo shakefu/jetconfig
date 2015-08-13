@@ -24,6 +24,17 @@ before(function (done) {
 });
 
 
+after(function () { 
+    var conf = new Config({prefix: 'jetconfig/', allowClear: true});
+    try {
+        conf.clear();
+    }
+    catch (err) {
+        conf.warn("Error clearing test configs", err);
+    }
+});
+
+
 describe("Config", function () {
     describe("new", function () {
         var host1 = '127.0.0.1:4001';
@@ -76,23 +87,28 @@ describe("Config", function () {
         });
 
         it("should trim prefixes", function () {
-            var conf = new Config({prefix: ' foo/ '});
-            conf.prefix.should.equal('foo/');
+            var conf = new Config({prefix: ' jetconfig/foo/ '});
+            conf.prefix.should.equal('jetconfig/foo/');
         });
 
         it("should add a trailing slash to a prefix", function () {
-            var conf = new Config({prefix: 'foo'});
-            conf.prefix.should.equal('foo/');
+            var conf = new Config({prefix: 'jetconfig/foo'});
+            conf.prefix.should.equal('jetconfig/foo/');
         });
 
         it("should trim leading slashes on the prefix", function () {
-            var conf = new Config({prefix: '/bar'});
-            conf.prefix.should.equal('bar/');
+            var conf = new Config({prefix: '/jetconfig/bar'});
+            conf.prefix.should.equal('jetconfig/bar/');
         });
 
         it("should require cache option to be boolean", function () {
             expect(function () { new Config({cache: 'foo'}); }) // jshint ignore:line
                 .to.throw("cache must be boolean");
+        });
+
+        it("should require caseSensitive option to be boolean", function () {
+            expect(function () { new Config({caseSensitive: 'foo'}); }) // jshint ignore:line
+                .to.throw("caseSensitive must be boolean");
         });
     });
 
@@ -131,6 +147,17 @@ describe("Config", function () {
                 done();
             });
         });
+
+        it("should have a case insensitive cache for defaults", function () {
+            conf.get('caseSensitive', true).should.equal(true);
+            conf.get('casesensitive').should.equal(true);
+        });
+
+        it("should respect the caseSensitive option", function () {
+            var case_conf = new Config({caseSensitive: true});
+            case_conf.get('caseSensitive', true).should.equal(true);
+            expect(case_conf.get('casesensitive')).to.be.undefined;
+        });
     });
 
     describe('#set()', function () {
@@ -141,6 +168,10 @@ describe("Config", function () {
                 cache: false,
                 allowClear: true,
             });
+            conf.clear();
+        });
+
+        after(function () {
             conf.clear();
         });
 
@@ -198,6 +229,25 @@ describe("Config", function () {
             conf.set('test-cache-off', 'cached', {cacheOnly: true});
             expect(conf.get('test-cache-off')).to.be.undefined;
         });
+
+        it("should be case insensitive by default", function () {
+            conf.set('setCaseSensitive', 'Value');
+            conf.clear({cacheOnly: true});
+            expect(conf.get('setCasesensitive')).to.not.be.undefined;
+            conf.get('setcasesensitive').should.equal('Value');
+        });
+
+        it("should respect case sensitivity", function () {
+            var case_conf = new Config({
+                prefix: 'jetconfig/test/case_sensitive',
+                caseSensitive: true,
+                allowClear: true
+            });
+
+            case_conf.set('caseSensitive', 'Value');
+            case_conf.clear({cacheOnly: true});
+            expect(conf.get('casesensitive')).to.be.undefined;
+        });
     });
 
     describe('#dump()', function () {
@@ -218,6 +268,25 @@ describe("Config", function () {
                 'ph.beta': 'b',
                 'ph.obj': {'o': 1}
             });
+        });
+
+        it("should be case insensitive by default", function () {
+            var conf = new Config();
+            conf.set('some.Key.Here', 'Value');
+            var dump = conf.dump();
+            expect(dump).to.not.be.undefined;
+            dump.should.eql({'some.key.here': 'Value'});
+        });
+
+        it("should respect case sensitivity", function () {
+            var case_conf = new Config({
+                prefix: 'jetconfig/test/caseDump',
+                caseSensitive: true,
+            });
+            case_conf.set('someKey', 'Value');
+            var dump = case_conf.dump();
+            expect(dump).to.not.be.undefined;
+            dump.should.eql({someKey: 'Value'});
         });
     });
 
@@ -366,6 +435,32 @@ describe("Config", function () {
                 conf.log.level('debug');
                 // conf.log.debug("Testing");
             });
+        });
+    });
+
+    describe('inheritance', function () {
+        describe('new', function () {
+            it("should be able to specify inheritance");
+            it("should be able to disable inheritance");
+            it("should limit inheritance depth");
+            it("should require etcd if inheritance is enabled");
+        });
+        describe('#get()', function () {
+            it("should inherit values");
+            it("should do deep inheritance");
+            it("should restrict inheritance depth to the limit specified");
+        });
+        describe('#dump()', function () {
+            it("should inherit values");
+            it("should do deep inheritance");
+            it("should restrict inheritance depth to the limit specified");
+            it("should be able to disable inheritance");
+        });
+        describe('#load()', function () {
+            it("should inherit values");
+            it("should do deep inheritance");
+            it("should restrict inheritance depth to the limit specified");
+            it("should be able to disable inheritance");
         });
     });
 });

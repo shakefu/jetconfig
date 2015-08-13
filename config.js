@@ -64,10 +64,13 @@ Config.prototype.get = function get (key, def, opts, callback) {
         cacheOnly = true;
     }
 
+    // Coerce key according to options
+    key = this._k(key, false);
+
     // Check if we're using the local cache
     if (cacheEnabled && this.cache[key] !== undefined) {
         result = this.cache[key];
-        this.log.debug('get', '/' + this.prefix + key, result, '(cached)');
+        this.log.debug('get', '/' + this._k(key), result, '(cached)');
         if (!_.isFunction(callback)) return result;
         return callback(null, result);
     }
@@ -79,11 +82,11 @@ Config.prototype.get = function get (key, def, opts, callback) {
 
     // Handle calling synchronously
     if (!_.isFunction(callback)) {
-        result = this.client().getSync(this.prefix + key);
+        result = this.client().getSync(this._k(key));
         this.log.silly("etcd get result:", result);
         result = this._parseResult(result);
         if (result === undefined) {
-            this.log.debug('get', '/' + this.prefix + key, def, def !==
+            this.log.debug('get', '/' + this._k(key), def, def !==
                     undefined ? '(default)' : '');
             if (cacheResult && def !== undefined) this.cache[key] = def;
             return def;
@@ -95,7 +98,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // Handle async/callbck
     assert(_.isFunction(callback), "callback must be a Function");
 
-    this.client().get(this.prefix + key, function (err, result) {
+    this.client().get(this._k(key), function (err, result) {
         result = {err: err, body: result};
         this.log.silly("etcd get async result:", result);
         try {
@@ -105,7 +108,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
             callback(err);
         }
         if (result === undefined){
-            this.log.debug('get', '/' + this.prefix + key, def, '(default)');
+            this.log.debug('get', '/' + this._k(key), def, '(default)');
             if (cacheResult) this.cache[key] = def;
             return callback(null, def);
         }
@@ -144,7 +147,10 @@ Config.prototype.set = function set (key, value, opts, callback) {
         delete opts.cacheOnly;
     }
 
-    this.log.debug('set', '/' + this.prefix + key, json_value, cacheOnly ?
+    // Coerce key casing according to options
+    key = this._k(key, false);
+
+    this.log.debug('set', '/' + this._k(key), json_value, cacheOnly ?
             '(cache only)' : '');
 
     // Only update things locally, do not write to etcd
@@ -156,7 +162,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
 
     // Handle calling synchronously
     if (!_.isFunction(callback)) {
-        result = this.client().setSync(this.prefix + key, json_value, opts);
+        result = this.client().setSync(this._k(key), json_value, opts);
         this.log.silly("etcd set result:", result);
         if (result.err) throw result.err;
         if (this.cacheEnabled) this.cache[key] = value;
@@ -164,7 +170,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
     }
 
     // Handle async/callback
-    this.client().set(this.prefix + key, json_value, opts,
+    this.client().set(this._k(key), json_value, opts,
             function (err, result) {
         if (err) return callback(err);
         this.log.silly("etcd set async result:", result);
@@ -204,6 +210,8 @@ Config.prototype.dump = function dump () {
         }
         // Trim off the leading namespace of the key
         if (_.startsWith(key, ns)) key = key.slice(ns.length);
+        // Coerce key casing according to options
+        key = this._k(key, false);
         obj[key] = value;
     }
     return obj;
@@ -230,6 +238,10 @@ Config.prototype.load = function load (config, opts) {
     if (config === undefined) {
         config = this.dump();
     }
+
+    config = _.mapKeys(config, function (value, key) {
+        return this._k(key, false);
+    }, this);
 
     // If we're not merging, clear the cache first
     if (opts.merge === false) this.cache = {};
@@ -296,6 +308,16 @@ Config.prototype.client = function client () {
 
 
 /**
+ * Private helper for controlling key names
+ */
+Config.prototype._k = function _k (key, pre) {
+    if (pre !== false) key = this.prefix + key;
+    if (!this.caseSensitive) key = key.toLowerCase();
+    return key;
+};
+
+
+/**
  * Private helper to parse the etcd result.
  */
 Config.prototype._parseResult = function _parseResult (result) {
@@ -350,6 +372,7 @@ init = function init (hosts, opts) {
         prefix: 'config/',
         logLevel: 'critical',
         allowClear: false,
+        caseSensitive: false,
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -358,7 +381,13 @@ init = function init (hosts, opts) {
     opts = opts || {};
     opts = _.defaults(opts, defaults);
 
+    assert(_.isString(opts.logLevel), "logLevel must be string");
+
+    this.log = new Log();
+    this.log.level(process.env.JETCONFIG_LOGLEVEL || opts.logLevel);
+
     assert(_.isBoolean(opts.cache), "cache must be boolean");
+    assert(_.isBoolean(opts.caseSensitive), "caseSensitive must be boolean");
 
     // Ensure prefix is a string without extra whitspace and ends with a slash
     assert(_.isString(opts.prefix), "prefix must be string");
@@ -375,14 +404,14 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
+    this.log.silly("new Config", hosts, opts);
+
     this.cacheEnabled = opts.cache;
+    this.caseSensitive = opts.caseSensitive;
     this.prefix = opts.prefix;
     this.sslopts = opts.ssl;
     this.hosts = _getEnvHosts(hosts);
     this.allowClear = opts.allowClear;
-    this.log = new Log();
-    this.log.level(this.logLevel);
-
 };
 
 

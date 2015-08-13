@@ -76,6 +76,9 @@ Create a new jetconfig instance.
     (default: `'critical'`)
   * **`allowClear`** (*Boolean*) - Whether to allow the `.clear()` method on
     this instance (default: `false`)
+  * **`caseSensitive`** (*Boolean*) - Whether to allow case sensitive keys
+    (default: `false`). This will coerce keys to lower case for storage in
+    etcd, so if you need case sensitivity to avoid key conflicts, enable it.
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
