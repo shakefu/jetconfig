@@ -11,6 +11,7 @@ var Etcd = require('node-etcd');
 /**
  * Create a new config instance backed by etcd
  */
+var _optsFromConfig; // _optsFromConfig(conf);
 var init; // init(hosts, opts)
 var Config = function Config (hosts, opts) {
     assert(this instanceof Config, "Missing 'new' keyword");
@@ -31,6 +32,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     var cacheEnabled = this.cacheEnabled;
     var cacheResult = cacheEnabled;
     var cacheOnly = false;
+    var allowInherited = this.inherit;
     var result;
 
     assert(_.isString(key), "key must be a String");
@@ -64,6 +66,11 @@ Config.prototype.get = function get (key, def, opts, callback) {
         cacheOnly = true;
     }
 
+    // Check whether we're allowing inheritance for this get
+    if (opts && opts.allowInherited !== true) {
+        allowInherited = false;
+    }
+
     // Coerce key according to options
     key = this._k(key, false);
 
@@ -82,10 +89,24 @@ Config.prototype.get = function get (key, def, opts, callback) {
 
     // Handle calling synchronously
     if (!_.isFunction(callback)) {
-        result = this.client().getSync(this._k(key));
+        result = this.client().getSync(this._k(key), opts);
         this.log.silly("etcd get result:", result);
         result = this._parseResult(result);
         if (result === undefined) {
+            if (allowInherited === true) {
+                this.log.silly("Trying to inherit", key);
+                result = this._inherited(key, _.defaults(opts || {}, {
+                    cached: cacheEnabled,
+                    cacheOnly: cacheOnly,
+                    cacheResult: cacheResult,
+                }));
+                if (result !== undefined) {
+                    this.log.debug('get', '/' + this._k(key), result,
+                            '(inherited)');
+                    if (cacheResult) this.cache[key] = result;
+                    return result;
+                }
+            }
             this.log.debug('get', '/' + this._k(key), def, def !==
                     undefined ? '(default)' : '');
             if (cacheResult && def !== undefined) this.cache[key] = def;
@@ -360,6 +381,77 @@ Config.prototype._parseResult = function _parseResult (result) {
 
 
 /**
+ * Private helper for trying to get an inherited value.
+ */
+Config.prototype._inherited = function _inherited (key, opts) {
+    // Don't query if there's no inheritance
+    if (!this.inherit) return undefined;
+    // Don't query if we're trying cache only keys
+    if (opts.cacheOnly) {
+        this.log.silly("Skipping inheritance, cacheOnly == true");
+        return undefined;
+    }
+    // See if we've created our base instance yet
+    if (!opts.inheritConfig) {
+        // We have to query here to see if there's a key set for this config
+        var prefix;
+        try {
+            prefix = this.get(this.inheritKey, undefined, {allowInherited:
+                false});
+        }
+        catch (err) {
+            this.log.warn("Error getting inheritance value:", err);
+            return undefined;
+        }
+        // Abandon inheritance if we didn't get a string prefix value
+        if (!_.isString(prefix)) {
+            this.log.debug("Disabling inheritance, no key found.");
+            this.inherit = false;
+            return undefined;
+        }
+        this.log.silly("Creating new inheritance config");
+        var remaining_depth = opts.inheritDepth - 1;
+        // Create a cloned options for making the base instance
+        var _opts = _optsFromConfig(this);
+        // If we're already as deep as we go, make sure the base instance
+        // doesn't try to inherit anything
+        if (remaining_depth < 1) {
+            _opts.inherit = false;
+            _opts.inheritDepth = 0;
+        }
+        // Set the base instance prefix to be the inherit stirng
+        _opts.prefix = prefix;
+        this.inheritConfig = new Config(_opts);
+    }
+
+    try {
+        return this.inheritConfig.get(key, opts);
+    }
+    catch (err) {
+        this.log.warn("Error getting inherited key:", err);
+    }
+    return undefined;
+};
+
+/**
+ * Private helper for cloning options from an existing Config instance.
+ */
+_optsFromConfig = function _optsFromConfig (conf) {
+    var opts = {};
+
+    opts.cache = conf.cacheEnabled;
+    opts.caseSensitive = conf.caseSensitive;
+    opts.prefix = conf.prefix;
+    opts.sslconf = conf.ssl;
+    opts.hosts = conf.hosts;
+    opts.allowClear = conf.allowClear;
+    opts.inherit = conf.inherit;
+    opts.logLevel = conf.log.level();
+
+    return opts;
+};
+
+/**
  * Private helper to set up the Config instnace
  *
  * @param hosts {String|Object} - Etcd hosts
@@ -373,6 +465,10 @@ init = function init (hosts, opts) {
         logLevel: 'critical',
         allowClear: false,
         caseSensitive: false,
+        inherit: true,
+        inheritKey: 'jetconfig.inherit',
+        inheritDepth: 1,
+        hosts: '127.0.0.1:2379',
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -380,6 +476,9 @@ init = function init (hosts, opts) {
     }
     opts = opts || {};
     opts = _.defaults(opts, defaults);
+    if (hosts) {
+        opts.hosts = hosts;
+    }
 
     assert(_.isString(opts.logLevel), "logLevel must be string");
 
@@ -388,6 +487,9 @@ init = function init (hosts, opts) {
 
     assert(_.isBoolean(opts.cache), "cache must be boolean");
     assert(_.isBoolean(opts.caseSensitive), "caseSensitive must be boolean");
+    assert(_.isString(opts.inheritKey), "inheritKey must be string");
+    assert(_.isNumber(opts.inheritDepth) && opts.inheritDepth >= 0,
+            "inheritDepth must be an integer greater than or equal to 0");
 
     // Ensure prefix is a string without extra whitspace and ends with a slash
     assert(_.isString(opts.prefix), "prefix must be string");
@@ -400,6 +502,7 @@ init = function init (hosts, opts) {
         assert(_.isPlainObject(opts.ssl), "ssl options must be object");
     }
 
+    // Initialize an empty cache if we're using caching
     if (opts.cache) {
         this.cache = {};
     }
@@ -410,8 +513,42 @@ init = function init (hosts, opts) {
     this.caseSensitive = opts.caseSensitive;
     this.prefix = opts.prefix;
     this.sslopts = opts.ssl;
-    this.hosts = _getEnvHosts(hosts);
+    this.hosts = _getEnvHosts(opts.hosts);
     this.allowClear = opts.allowClear;
+
+    // If a base config was specified here, we set it up
+    if (_.isString(opts.inherit)) {
+        this.log.debug("Initializing new inheritance config");
+        var _opts;
+        var remaining_depth = opts.inheritDepth - 1;
+        this.inherit = true;
+        // Create a cloned options for making the base instance
+        _opts = _optsFromConfig(this);
+        // If we're already as deep as we go, make sure the base instance
+        // doesn't try to inherit anything
+        if (remaining_depth < 1) {
+            _opts.inherit = false;
+            _opts.inheritDepth = 0;
+        }
+        // Set the base instance prefix to be the inherit stirng
+        _opts.prefix = opts.inherit;
+        this.inheritKey = opts.inheritKey;
+        this.inheritDepth = opts.inheritDepth;
+        this.inheritConfig = new Config(_opts);
+    }
+    else if (opts.inherit === true) {
+        this.inherit = true;
+        this.inheritKey = opts.inheritKey;
+        this.inheritConfig = null;
+        this.inheritDepth = opts.inheritDepth;
+    }
+    else if (opts.inherit === false) {
+        this.inherit = false;
+        this.inheritKey = null;
+        this.inheritDepth = 0;
+    }
+    else assert(false, "inherit must be String or Boolean");
+
 };
 
 

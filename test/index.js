@@ -19,7 +19,7 @@ before(function (done) {
         return done(new Error("etcd not working properly, aborting tests"));
     }
     // Uncomment this to get helpful debug logging for all the tests
-    // process.env.JETCONFIG_LOGLEVEL = 'debug';
+    // process.env.JETCONFIG_LOGLEVEL = 'silly';
     done();
 });
 
@@ -439,6 +439,27 @@ describe("Config", function () {
     });
 
     describe('inheritance', function () {
+        var conf;
+        var base_conf;
+        before(function () {
+            conf = new Config({
+                prefix: 'jetconfig/inherit/child',
+                cache: false,
+            });
+            base_conf = new Config({
+                prefix: 'jetconfig/inherit/base',
+                cache: false
+            });
+
+            base_conf.set('some.value', 1);
+            base_conf.set('some.other.value', 1);
+
+            conf.set(conf.inheritKey, 'jetconfig/inherit/base');
+            conf.set('some.other.value', 2);
+
+            conf.log.level('silly');
+        });
+
         describe('new', function () {
             it("should be able to specify inheritance");
             it("should be able to disable inheritance");
@@ -446,8 +467,19 @@ describe("Config", function () {
             it("should require etcd if inheritance is enabled");
         });
         describe('#get()', function () {
-            it("should inherit values");
-            it("should do deep inheritance");
+            it("should inherit values", function () {
+                expect(conf.get('some.other.value')).to.equal(2);
+                expect(conf.get('some.value')).to.equal(1);
+            });
+            it("should do deep inheritance", function () {
+                var child_conf = new Config({
+                    prefix: 'jetconfig/inherit/grandchild'
+                });
+                child_conf.set(child_conf.inheritKey,
+                    'jetconfig/inherit/child');
+                expect(child_conf.get('some.value')).to.equal(1);
+                expect(child_conf.get('some.other.value')).to.equal(2);
+            });
             it("should restrict inheritance depth to the limit specified");
         });
         describe('#dump()', function () {
