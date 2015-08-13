@@ -147,7 +147,7 @@ existing configuration, use `.clear()` first.
   * **`merge`** (*Boolean*) - Whether to merge the existing cache with the
     newly loaded config, or clear it first
 
-### `.clear()`
+### `.clear(`*`[options]`*`)`
 
 Clears all the stored keys for the given config object in etcd. This must be
 explicitly enabled by passing the `allowClear: true` option to the constructor.
@@ -168,7 +168,7 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 * **`level`** (*String*) - Sets the log level. If this is omitted, the current
   level is returned as a string.
 
-### `.client(`*`[options]`*`)`
+### `.client()`
 
 Return a reference to the underlying *node-etcd* client instance.
 
