@@ -67,7 +67,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     }
 
     // Check whether we're allowing inheritance for this get
-    if (opts && opts.allowInherited !== true) {
+    if (opts && opts.allowInherited === false) {
         allowInherited = false;
     }
 
@@ -77,65 +77,71 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // Check if we're using the local cache
     if (cacheEnabled && this.cache[key] !== undefined) {
         result = this.cache[key];
-        this.log.debug('get', '/' + this._k(key), result, '(cached)');
+        this.log.silly('get', '/' + this._k(key), result, '(cached)');
         if (!_.isFunction(callback)) return result;
         return callback(null, result);
     }
 
-    // Don't query etcd if we're only using cache
+    // If we're only using cache, and the value wasn't in cache, then we don't
+    // query etcd and return undefined
     if (cacheEnabled && cacheOnly) {
+        this.log.silly('get', '/' + this._k(key), 'undefined',
+                '(skipped, cacheOnly');
         return undefined;
     }
 
-    // Handle calling synchronously
-    if (!_.isFunction(callback)) {
-        result = this.client().getSync(this._k(key), opts);
-        this.log.silly("etcd get result:", result);
-        result = this._parseResult(result);
-        if (result === undefined) {
-            if (allowInherited === true) {
-                this.log.silly("Trying to inherit", key);
-                result = this._inherited(key, _.defaults(opts || {}, {
-                    cached: cacheEnabled,
-                    cacheOnly: cacheOnly,
-                    cacheResult: cacheResult,
-                }));
-                if (result !== undefined) {
-                    this.log.debug('get', '/' + this._k(key), result,
-                            '(inherited)');
-                    if (cacheResult) this.cache[key] = result;
-                    return result;
-                }
-            }
-            this.log.debug('get', '/' + this._k(key), def, def !==
-                    undefined ? '(default)' : '');
-            if (cacheResult && def !== undefined) this.cache[key] = def;
-            return def;
-        }
-        if (cacheResult) this.cache[key] = result;
+    assert(callback === undefined || _.isFunction(callback),
+        "callback must be a Function");
+
+    // Helper for behavior switching between callback or synchronous
+    var cb = function cb (err, result) {
+        if (callback) return callback(err, result);
+        if (err) throw err;
         return result;
-    }
+    };
 
-    // Handle async/callbck
-    assert(_.isFunction(callback), "callback must be a Function");
-
-    this.client().get(this._k(key), function (err, result) {
-        result = {err: err, body: result};
-        this.log.silly("etcd get async result:", result);
+    // Common handler for synchronous and async operations
+    var handler = function handler (result) {
         try {
             result = this._parseResult(result);
         }
         catch (err) {
-            callback(err);
+            return cb(err, result);
         }
-        if (result === undefined){
-            this.log.debug('get', '/' + this._k(key), def, '(default)');
-            if (cacheResult) this.cache[key] = def;
-            return callback(null, def);
+        if (result !== undefined) {
+            this.log.debug('get', '/' + this._k(key), result);
+            if (cacheResult) this.cache[key] = result;
+            return cb(null, result);
         }
-        if (cacheResult) this.cache[key] = result;
-        callback(null, result);
-    }.bind(this));
+        if (allowInherited === true) {
+            result = this._inherited(key, _.defaults(opts || {}, {
+                cached: cacheEnabled,
+                cacheOnly: cacheOnly,
+                cacheResult: cacheResult,
+            }));
+            if (result !== undefined) {
+                this.log.debug('get', '/' + this._k(key), result,
+                        '(inherited)');
+                if (cacheResult) this.cache[key] = result;
+                return cb(null, result);
+            }
+        }
+        this.log.debug('get', '/' + this._k(key), def, def !==
+                undefined ? '(default)' : '');
+        if (cacheResult && def !== undefined) this.cache[key] = def;
+        return cb(null, def);
+    }.bind(this);
+
+    if (!callback) {
+        result = this.client().getSync(this._k(key), opts);
+        return handler(result);
+    }
+    else {
+        this.client().get(this._k(key), function (err, result) {
+            result = {err: err, body: result};
+            handler(result);
+        });
+    }
 };
 
 
@@ -206,16 +212,27 @@ Config.prototype.set = function set (key, value, opts, callback) {
 /**
  * Dump the current config as an object suitable for serialization to JSON.
  */
-Config.prototype.dump = function dump () {
+Config.prototype.dump = function dump (opts) {
     var result = this.client().getSync(this.prefix, {recursive: true});
     var nodes;
     var obj = {};
     var ns = '/' + this.prefix;
 
+    opts = _.defaults(opts || {}, {
+        allowInherited: true
+    });
+
     if (result.err) throw result.err;
     if (!result.body || !result.body.node || !result.body.node.nodes) {
         this.log.warn("etcd unknown result:", result);
         return;
+    }
+
+    this._getInheritConfig();
+    if (this.inherit && opts.allowInherited) {
+        this.log.silly("Inheriting...");
+        var base = this.inheritConfig.dump();
+        _.assign(obj, base);
     }
 
     // Iterate over the returned nodes
@@ -366,8 +383,6 @@ Config.prototype._parseResult = function _parseResult (result) {
         return;
     }
 
-    this.log.debug(body.action, body.node.key, body.node.value);
-
     // We always try to parse the value as JSON for convenience
     try {
         value = JSON.parse(body.node.value);
@@ -391,47 +406,66 @@ Config.prototype._inherited = function _inherited (key, opts) {
         this.log.silly("Skipping inheritance, cacheOnly == true");
         return undefined;
     }
-    // See if we've created our base instance yet
-    if (!opts.inheritConfig) {
-        // We have to query here to see if there's a key set for this config
-        var prefix;
-        try {
-            prefix = this.get(this.inheritKey, undefined, {allowInherited:
-                false});
-        }
-        catch (err) {
-            this.log.warn("Error getting inheritance value:", err);
-            return undefined;
-        }
-        // Abandon inheritance if we didn't get a string prefix value
-        if (!_.isString(prefix)) {
-            this.log.debug("Disabling inheritance, no key found.");
-            this.inherit = false;
-            return undefined;
-        }
-        this.log.silly("Creating new inheritance config");
-        var remaining_depth = opts.inheritDepth - 1;
-        // Create a cloned options for making the base instance
-        var _opts = _optsFromConfig(this);
-        // If we're already as deep as we go, make sure the base instance
-        // doesn't try to inherit anything
-        if (remaining_depth < 1) {
-            _opts.inherit = false;
-            _opts.inheritDepth = 0;
-        }
-        // Set the base instance prefix to be the inherit stirng
-        _opts.prefix = prefix;
-        this.inheritConfig = new Config(_opts);
-    }
 
+    // Ensure we have our base instance
+    this._getInheritConfig();
     try {
-        return this.inheritConfig.get(key, opts);
+        this.log.silly("Attempting inherited get", key, opts);
+        return this.inheritConfig.get(key, undefined, opts);
     }
     catch (err) {
-        this.log.warn("Error getting inherited key:", err);
+        this.log.warn("Error getting inherited key: " + err);
     }
     return undefined;
 };
+
+
+/**
+ * Private helper to ensure we have a base config instance
+ */
+Config.prototype._getInheritConfig = function _getInheritConfig () {
+    // If we already have a config, get out
+    if (this.inheritConfig) return;
+    // We have to query here to see if there's a key set for this config
+    var prefix;
+    try {
+        prefix = this.get(this.inheritKey, undefined, {allowInherited:
+            false});
+    }
+    catch (err) {
+        this.log.warn("Error getting inheritance value: " + err);
+        this.inherit = false;
+        return undefined;
+    }
+    // Abandon inheritance if we didn't get a string prefix value
+    if (!_.isString(prefix)) {
+        this.log.debug("Disabling inheritance, no key found.");
+        this.inherit = false;
+        return undefined;
+    }
+    this.log.silly("Creating new inheritance config");
+    // Create a cloned options for making the base instance
+    this.inheritConfig = this._makeInheritConfig(prefix);
+};
+
+
+/**
+ * Private helper to make inheritable config instances.
+ */
+Config.prototype._makeInheritConfig = function _makeInheritConfig (prefix) {
+    var opts = _optsFromConfig(this);
+    // Set the base instance prefix to be the inherit stirng
+    opts.prefix = prefix;
+    opts.inheritDepth -= 1;
+    // If we're already as deep as we go, make sure the base instance
+    // doesn't try to inherit anything
+    if (opts.inheritDepth < 1) {
+        opts.inherit = false;
+        opts.inheritDepth = 0;
+    }
+    return new Config(opts);
+};
+
 
 /**
  * Private helper for cloning options from an existing Config instance.
@@ -446,6 +480,7 @@ _optsFromConfig = function _optsFromConfig (conf) {
     opts.hosts = conf.hosts;
     opts.allowClear = conf.allowClear;
     opts.inherit = conf.inherit;
+    opts.inheritDepth = conf.inheritDepth;
     opts.logLevel = conf.log.level();
 
     return opts;
@@ -507,7 +542,7 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
-    this.log.silly("new Config", hosts, opts);
+    this.log.silly("new Config", opts);
 
     this.cacheEnabled = opts.cache;
     this.caseSensitive = opts.caseSensitive;
@@ -516,31 +551,17 @@ init = function init (hosts, opts) {
     this.hosts = _getEnvHosts(opts.hosts);
     this.allowClear = opts.allowClear;
 
+    this.inheritKey = opts.inheritKey;
+    this.inheritDepth = opts.inheritDepth;
+    this.inheritConfig = null;
     // If a base config was specified here, we set it up
     if (_.isString(opts.inherit)) {
         this.log.debug("Initializing new inheritance config");
-        var _opts;
-        var remaining_depth = opts.inheritDepth - 1;
         this.inherit = true;
-        // Create a cloned options for making the base instance
-        _opts = _optsFromConfig(this);
-        // If we're already as deep as we go, make sure the base instance
-        // doesn't try to inherit anything
-        if (remaining_depth < 1) {
-            _opts.inherit = false;
-            _opts.inheritDepth = 0;
-        }
-        // Set the base instance prefix to be the inherit stirng
-        _opts.prefix = opts.inherit;
-        this.inheritKey = opts.inheritKey;
-        this.inheritDepth = opts.inheritDepth;
-        this.inheritConfig = new Config(_opts);
+        this.inheritConfig = this._makeInheritConfig(opts.inherit);
     }
     else if (opts.inherit === true) {
         this.inherit = true;
-        this.inheritKey = opts.inheritKey;
-        this.inheritConfig = null;
-        this.inheritDepth = opts.inheritDepth;
     }
     else if (opts.inherit === false) {
         this.inherit = false;

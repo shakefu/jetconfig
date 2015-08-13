@@ -255,12 +255,12 @@ describe("Config", function () {
 
         before(function () {
             conf = new Config({prefix: 'jetconfig/dump'});
-        });
-
-        it("should work", function () {
             conf.set('ph.alpha', 'a');
             conf.set('ph.beta', 'b');
             conf.set('ph.obj', {'o': 1});
+        });
+
+        it("should work", function () {
             var dump = conf.dump();
             expect(dump).to.not.be.undefined;
             dump.should.eql({
@@ -441,14 +441,24 @@ describe("Config", function () {
     describe('inheritance', function () {
         var conf;
         var base_conf;
+        var child_conf;
+        var shallow_conf;
         before(function () {
             conf = new Config({
                 prefix: 'jetconfig/inherit/child',
-                cache: false,
+                allowClear: true,
             });
             base_conf = new Config({
                 prefix: 'jetconfig/inherit/base',
-                cache: false
+                allowClear: true,
+            });
+            child_conf = new Config({
+                prefix: 'jetconfig/inherit/limited',
+                inheritDepth: 2,
+            });
+            shallow_conf = new Config({
+                prefix: 'jetconfig/inherit/grandchild',
+                inheritDepth: 1,
             });
 
             base_conf.set('some.value', 1);
@@ -457,7 +467,10 @@ describe("Config", function () {
             conf.set(conf.inheritKey, 'jetconfig/inherit/base');
             conf.set('some.other.value', 2);
 
-            conf.log.level('silly');
+            child_conf.set(child_conf.inheritKey, 'jetconfig/inherit/child');
+
+            shallow_conf.set(shallow_conf.inheritKey,
+                    'jetconfig/inherit/child');
         });
 
         describe('new', function () {
@@ -471,22 +484,60 @@ describe("Config", function () {
                 expect(conf.get('some.other.value')).to.equal(2);
                 expect(conf.get('some.value')).to.equal(1);
             });
+
             it("should do deep inheritance", function () {
-                var child_conf = new Config({
-                    prefix: 'jetconfig/inherit/grandchild'
-                });
-                child_conf.set(child_conf.inheritKey,
-                    'jetconfig/inherit/child');
                 expect(child_conf.get('some.value')).to.equal(1);
                 expect(child_conf.get('some.other.value')).to.equal(2);
             });
-            it("should restrict inheritance depth to the limit specified");
+
+            it("should restrict inheritance depth to the limit specified",
+                function () {
+                expect(shallow_conf.get('some.other.value')).to.equal(2);
+                expect(shallow_conf.get('some.value')).to.be.undefined;
+            });
+
+            it("should work with a callback", function (done) {
+                conf.clear({cacheOnly: true});
+                conf.get('some.value', function (err, val) {
+                    if (err) return done(err);
+                    expect(val).to.equal(1);
+                    done();
+                });
+            });
+
         });
         describe('#dump()', function () {
-            it("should inherit values");
-            it("should do deep inheritance");
-            it("should restrict inheritance depth to the limit specified");
-            it("should be able to disable inheritance");
+            it("should inherit values", function () {
+                var obj = conf.dump();
+                expect(obj).to.eql({
+                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'some.other.value': 2,
+                    'some.value': 1
+                });
+            });
+            it("should do deep inheritance", function () {
+                var obj = child_conf.dump();
+                expect(obj).to.eql({
+                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'some.other.value': 2,
+                    'some.value': 1
+                });
+            });
+            it("should restrict inheritance depth to the limit specified",
+                function () {
+                var obj = shallow_conf.dump();
+                expect(obj).to.eql({
+                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'some.other.value': 2,
+                });
+            });
+            it("should be able to disable inheritance", function () {
+                var obj = conf.dump({allowInherited: false});
+                expect(obj).to.eql({
+                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'some.other.value': 2,
+                });
+            });
         });
         describe('#load()', function () {
             it("should inherit values");
