@@ -188,6 +188,11 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.1.0** - Added configuration inheritance, other minor refactors and clean
+  ups.
+
+  *Released August 14, 2015.*
+
 * **1.0.0** - Initital release
 
   *Released August 12, 2015.*
