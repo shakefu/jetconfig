@@ -79,6 +79,12 @@ Create a new jetconfig instance.
   * **`caseSensitive`** (*Boolean*) - Whether to allow case sensitive keys
     (default: `false`). This will coerce keys to lower case for storage in
     etcd, so if you need case sensitivity to avoid key conflicts, enable it.
+  * **`inherit`** (*String|Boolean*) - Whether to allow inheritance, or the key
+    name to inherit from. (default: `true`)
+  * **`inheritDepth`** (*Number*) - The maximum depth to check inherited
+    configurations for missing keys (default: `1`)
+  * **`inheritKey`** (*String*) - The configuration key name used to store the
+    inherited configuration key (default: `'jetconfig.inherit'`)
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
@@ -96,6 +102,8 @@ underlying client errors.
     (default: `true`)
   * **`cacheOnly`** (*Boolean*) - Whether to only use the cache and not query
     etcd if the cache doesn't have a value (default: `false`)
+  * **`allowInherited`** (*Boolean*) - Whether to allow querying of inherited
+    configurations (default: `true`)
 * **`callback`** (*Function=*) - Callback (optional). If omitted, this method
   will return the value synchronously.
 
@@ -115,10 +123,14 @@ underlying client errors.
     anywhere.
 * **`callback`** (*Function=*) - Callback (optional)
 
-### `.dump()`
+### `.dump(`*`[options]`*`)`
 
 Returns an object suitable for JSON serialization which represents a dump of
 the current configuration as defined in etcd.
+
+* **`options`** (*Object*) - Options for this call (optional)
+  * **`allowInherited`** (*Boolean*) - Whether to allow inherited
+    configurations (default: `true`)
 
 ### `.load(`*`[config], [options]`*`)`
 
@@ -146,6 +158,8 @@ existing configuration, use `.clear()` first.
     write the loaded configuration to etcd (default: `true`)
   * **`merge`** (*Boolean*) - Whether to merge the existing cache with the
     newly loaded config, or clear it first
+  * **`allowInherited`** (*Boolean*) - Whether to allow inherited
+    configurations (default: `true`)
 
 ### `.clear(`*`[options]`*`)`
 
