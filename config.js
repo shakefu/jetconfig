@@ -263,8 +263,9 @@ var _flatten; // _flatten(Object)
 Config.prototype.load = function load (config, opts) {
     opts = opts || {};
     opts = _.defaults(opts, {
+        allowInherited: true,
         cacheOnly: true,
-        merge: true
+        merge: true,
     });
 
     // If the given config is an object, flatten the keys
@@ -274,7 +275,7 @@ Config.prototype.load = function load (config, opts) {
 
     // If we don't have a config, load the existing etcd config
     if (config === undefined) {
-        config = this.dump();
+        config = this.dump({allowInherited: opts.allowInherited});
     }
 
     config = _.mapKeys(config, function (value, key) {
