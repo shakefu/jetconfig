@@ -77,7 +77,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // Check if we're using the local cache
     if (cacheEnabled && this.cache[key] !== undefined) {
         result = this.cache[key];
-        this.log.silly('get', '/' + this._k(key), result, '(cached)');
+        this.log.debug('get', '/' + this._k(key), result, '(cached)');
         if (!_.isFunction(callback)) return result;
         return callback(null, result);
     }
@@ -85,7 +85,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // If we're only using cache, and the value wasn't in cache, then we don't
     // query etcd and return undefined
     if (cacheEnabled && cacheOnly) {
-        this.log.silly('get', '/' + this._k(key), 'undefined',
+        this.log.debug('get', '/' + this._k(key), 'undefined',
                 '(skipped, cacheOnly');
         return undefined;
     }
@@ -109,7 +109,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
             return cb(err, result);
         }
         if (result !== undefined) {
-            this.log.debug('get', '/' + this._k(key), result);
+            this.log.info('get', '/' + this._k(key), result);
             if (cacheResult) this.cache[key] = result;
             return cb(null, result);
         }
@@ -120,13 +120,13 @@ Config.prototype.get = function get (key, def, opts, callback) {
                 cacheResult: cacheResult,
             }));
             if (result !== undefined) {
-                this.log.debug('get', '/' + this._k(key), result,
+                this.log.info('get', '/' + this._k(key), result,
                         '(inherited)');
                 if (cacheResult) this.cache[key] = result;
                 return cb(null, result);
             }
         }
-        this.log.debug('get', '/' + this._k(key), def, def !==
+        this.log.info('get', '/' + this._k(key), def, def !==
                 undefined ? '(default)' : '');
         if (cacheResult && def !== undefined) this.cache[key] = def;
         return cb(null, def);
@@ -177,7 +177,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
     // Coerce key casing according to options
     key = this._k(key, false);
 
-    this.log.debug('set', '/' + this._k(key), json_value, cacheOnly ?
+    this.log.info('set', '/' + this._k(key), json_value, cacheOnly ?
             '(cache only)' : '');
 
     // Only update things locally, do not write to etcd
@@ -322,12 +322,12 @@ Config.prototype.clear = function clear (opts) {
             return;
         }
 
-        this.log.debug(result.body.action, result.body.node.key);
+        this.log.info(result.body.action, result.body.node.key);
     }
 
     // Clear the cache
     if (this.cacheEnabled) {
-        this.log.debug("cache cleared");
+        this.log.info("cache cleared");
         this.cache = {};
     }
 };
@@ -542,7 +542,7 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
-    this.log.silly("new Config", opts);
+    this.log.debug("new Config", opts);
 
     this.cacheEnabled = opts.cache;
     this.caseSensitive = opts.caseSensitive;
@@ -556,7 +556,7 @@ init = function init (hosts, opts) {
     this.inheritConfig = null;
     // If a base config was specified here, we set it up
     if (_.isString(opts.inherit)) {
-        this.log.debug("Initializing new inheritance config");
+        this.log.silly("Initializing new inheritance config");
         this.inherit = true;
         this.inheritConfig = this._makeInheritConfig(opts.inherit);
     }
