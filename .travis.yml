@@ -13,14 +13,14 @@ env:
   # - >
   #   INSTALL_ETCD=2.1.1
   #   _SSL="`pwd`/test/ssl"
-  #   _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/ca.crt -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
-  #   JETCONFIG_SSL_CA="${_SSL}/ca.crt"
+  #   _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/cacert.crt -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
+  #   JETCONFIG_SSL_CA="${_SSL}/cacert.pem"
   #   JETCONFIG_SSL_CERT="${_SSL}/client.crt"
   #   JETCONFIG_SSL_KEY="${_SSL}/client.key"
   - >
     INSTALL_ETCD=2.1.1
     _SSL="`pwd`/test/ssl"
-    _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
+    _ETCD="./etcd -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
     JETCONFIG_SSL_CA="${_SSL}/cacert.pem"
     JETCONFIG_SSL_CERT="${_SSL}/client.crt"
     JETCONFIG_SSL_KEY="${_SSL}/client.key"
