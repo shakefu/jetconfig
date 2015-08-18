@@ -599,7 +599,9 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
-    this.log.debug("new Config", opts);
+    this.log.debug("new Config", _.assign(_.defaults({}, opts), {
+        ssl: opts.ssl ? true : false
+    }));
 
     this.cacheEnabled = opts.cache;
     this.caseSensitive = opts.caseSensitive;
