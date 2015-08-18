@@ -1,15 +1,24 @@
 language: node_js
 node_js:
   - "0.12"
-  - "0.11"
-  - "0.10"
+  # - "0.11"
+  # - "0.10"
 env:
+  # - >
+  #   INSTALL_ETCD=2.1.1
+  #   _ETCD="./etcd"
+  # - >
+  #   INSTALL_ETCD=2.0.13
+  #   _ETCD="./etcd"
   - >
     INSTALL_ETCD=2.1.1
-    _ETCD="./etcd"
-  - >
-    INSTALL_ETCD=2.0.13
-    _ETCD="./etcd"
+    _ETCD="./etcd
+      -client-cert-auth
+      -trusted-ca-file=./test/ssl/ca.crt
+      -cert-file=./test/ssl/server.crt
+      -key-file=./test/ssl/server.key
+      -advertise-client-urls https://127.0.0.1:2379
+      -listen-client-urls https://127.0.0.1:2379"
 before_script:
   - curl -L  https://github.com/coreos/etcd/releases/download/v${INSTALL_ETCD}/etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz -o etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz
   - tar xzvf etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz
