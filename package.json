@@ -6,6 +6,9 @@
   "scripts": {
     "test": "jshint --verbose *.js test/*.js && mocha test/index.js"
   },
+  "bin": {
+    "jetconfig": "./cli.js"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
@@ -41,6 +44,7 @@
   },
   "dependencies": {
     "lodash": "^3.10.0",
-    "node-etcd": "^4.1.0"
+    "node-etcd": "^4.1.0",
+    "nomnom": "^1.8.1"
   }
 }

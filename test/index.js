@@ -1,4 +1,5 @@
 /* jshint expr:true */
+var _ = require('lodash');
 var pkg = require('../package.json');
 var Etcd = require('node-etcd');
 var chai = require('chai');
@@ -271,7 +272,7 @@ describe("Config", function () {
         });
 
         it("should be case insensitive by default", function () {
-            var conf = new Config();
+            var conf = new Config({prefix: 'jetconfig/dump/case'});
             conf.set('some.Key.Here', 'Value');
             var dump = conf.dump();
             expect(dump).to.not.be.undefined;
@@ -350,6 +351,20 @@ describe("Config", function () {
             conf.get('test.conf1', {cacheOnly: true}).should.eql({a: {b: 2}});
             conf.get('test.conf2', {cacheOnly: true}).should.equal(true);
         });
+
+        it("should be able to write a configuration to etcd", function () {
+            conf.load({
+                test1: true,
+                test2: false
+            }, {
+                merge: false,
+                cacheOnly: false
+            });
+            expect(conf.get('test1', undefined, {cached: false}))
+                .to.equal(true);
+            expect(conf.get('test2', undefined, {cached: false}))
+                .to.equal(false);
+        });
     });
 
     describe('#clear()', function () {
@@ -386,6 +401,24 @@ describe("Config", function () {
             conf.set('test.cacheOnly', true);
             conf.clear({cacheOnly: true});
             conf.get('test.cacheOnly').should.equal(true);
+        });
+    });
+
+    describe('list', function () {
+        var keys = ['test1', 'test2', 'test3'];
+        var conf;
+        before(function () {
+            conf = new Config({prefix: 'jetconfig/list'});
+            _.forEach(keys, function (key) {
+                key = key + '/value';
+                conf.set(key, 1);
+            });
+        });
+
+        it("should list all the keys in the prefix", function () {
+            var items = conf.list('');
+            expect(items).to.not.be.undefined;
+            items.should.eql(keys);
         });
     });
 

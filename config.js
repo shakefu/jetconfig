@@ -290,7 +290,7 @@ Config.prototype.load = function load (config, opts) {
 
     // Write to etcd
     if (opts.cacheOnly === false) {
-        _.forOf(config, function (key, value) {
+        _.forOwn(config, function (value, key) {
             this.set(key, value);
         }, this);
     }
@@ -331,6 +331,57 @@ Config.prototype.clear = function clear (opts) {
         this.log.info("cache cleared");
         this.cache = {};
     }
+};
+
+
+/**
+ * Lists all directories within a key
+ *
+ * @param key {String} - Key to list within
+ */
+Config.prototype.list = function list (key) {
+    key = key || '';
+    var ns = this._k(key);
+    var result = this.client().getSync(ns);
+    if (!result) throw new Error("Unkown error");
+    if (result.err) {
+        if (result.err.errorCode == 100) return [];
+        this.log.silly("etcd error result:", result);
+        // Otherwise we throw the error so it can propagate up the stack
+        throw result.err;
+    }
+
+    // Handle a missing body (shouldn't happen?)
+    if (!result.body) {
+        this.log.warn("etcd unknown result:", result);
+        return [];
+    }
+
+    // Handle missing node entry (also shouldn't happen)
+    result = result.body;
+    if (!result.node) {
+        this.log.warn("etcd unknown result:", result);
+        return [];
+    }
+
+    // Handle missing nodes ... may happen, not sure
+    result = result.node;
+    if (!result.nodes) {
+        this.log.warn("etcd unknown result:", result);
+        return [];
+    }
+
+    // Parse the result looking for directory nodes
+    var keys = [];
+    ns = '/' + ns;
+    _.forEach(result.nodes, function (node) {
+        if (node.dir !== true) return;
+        key = node.key;
+        if (_.startsWith(key, ns)) key = key.slice(ns.length);
+        keys.push(key);
+    }.bind(this));
+
+    return keys;
 };
 
 
@@ -410,6 +461,7 @@ Config.prototype._inherited = function _inherited (key, opts) {
 
     // Ensure we have our base instance
     this._getInheritConfig();
+    if (this.inheritConfig == null) return undefined;
     try {
         this.log.silly("Attempting inherited get", key, opts);
         return this.inheritConfig.get(key, undefined, opts);
