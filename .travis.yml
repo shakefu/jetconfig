@@ -4,13 +4,13 @@ node_js:
   - "0.11"
   - "0.10"
 env:
-  - INSTALL_ETCD=2.1.1
-  - INSTALL_ETCD=2.0.13
+  - INSTALL_ETCD=2.1.1; _ETCD="./etcd"
+  - INSTALL_ETCD=2.0.13; _ETCD="./etcd"
 before_script:
   - curl -L  https://github.com/coreos/etcd/releases/download/v${INSTALL_ETCD}/etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz -o etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz
   - tar xzvf etcd-v${INSTALL_ETCD}-linux-amd64.tar.gz
   - cd etcd-v${INSTALL_ETCD}-linux-amd64
   - ./etcd --version
-  - ./etcd &
+  - ${_ETCD} &
   - cd -
   - sleep 3 # Give etcd startup time
