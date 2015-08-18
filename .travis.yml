@@ -10,6 +10,13 @@ env:
   # - >
   #   INSTALL_ETCD=2.0.13
   #   _ETCD="./etcd"
+  # - >
+  #   INSTALL_ETCD=2.1.1
+  #   _SSL="`pwd`/test/ssl"
+  #   _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/ca.crt -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
+  #   JETCONFIG_SSL_CA="${_SSL}/ca.crt"
+  #   JETCONFIG_SSL_CERT="${_SSL}/client.crt"
+  #   JETCONFIG_SSL_KEY="${_SSL}/client.key"
   - >
     INSTALL_ETCD=2.1.1
     _SSL="`pwd`/test/ssl"
@@ -25,6 +32,7 @@ before_script:
   - ${_ETCD} &
   - cd -
   - sleep 3 # Give etcd startup time
-  - curl -v --cacert ${JETCONFIG_SSL_CA} --cert ${JETCONFIG_SSL_CERT} --key ${JETCONFIG_SSL_KEY} https://127.0.0.1:2379/v2/keys
+  # - curl -v --cacert ${JETCONFIG_SSL_CA} --cert ${JETCONFIG_SSL_CERT} --key ${JETCONFIG_SSL_KEY} https://127.0.0.1:2379/v2/keys
+  - curl -v --cacert ${JETCONFIG_SSL_CA} https://127.0.0.1:2379/v2/keys
 
 
