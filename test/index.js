@@ -12,7 +12,7 @@ var Config = require('../index.js');
 
 before(function (done) {
     var key = 'jetconfig/test/version';
-    var conf = new Config();
+    var conf = new Config({logLevel: 'silly'});
     conf.set(key, pkg.version, {ttl: 1});
     conf.get(key).should.equal(pkg.version);
     // This doesn't work with SSL setup...
@@ -37,7 +37,7 @@ after(function () {
         conf.clear();
     }
     catch (err) {
-        conf.warn("Error clearing test configs", err);
+        conf.log.warn("Error clearing test configs", err);
     }
 });
 

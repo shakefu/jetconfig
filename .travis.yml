@@ -25,3 +25,6 @@ before_script:
   - ${_ETCD} &
   - cd -
   - sleep 3 # Give etcd startup time
+  - curl -v --cacert ${JETCONFIG_SSL_CA} --cert ${JETCONFIG_SSL_CERT} --key ${JETCONFIG_SSL_KEY} https://127.0.0.1:2379/v2/keys
+
+
