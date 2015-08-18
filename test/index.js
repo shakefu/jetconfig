@@ -31,7 +31,7 @@ before(function (done) {
 });
 
 
-after(function () { 
+after(function () {
     var conf = new Config({prefix: 'jetconfig/', allowClear: true});
     try {
         conf.clear();
