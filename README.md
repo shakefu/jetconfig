@@ -168,7 +168,7 @@ existing configuration, use `.clear()` first.
   * **`allowInherited`** (*Boolean*) - Whether to allow inherited
     configurations (default: `true`)
 
-### `.list(`*`[key]`*`)
+### `.list(`*`[key]`*`)`
 
 List all etcd directories under the config prefix and *key*. If *key* is
 omitted, all directories under *prefix* are listed.
