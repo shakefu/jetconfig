@@ -418,7 +418,7 @@ describe("Config", function () {
         it("should list all the keys in the prefix", function () {
             var items = conf.list('');
             expect(items).to.not.be.undefined;
-            items.should.eql(keys);
+            items.sort().should.eql(keys.sort());
         });
     });
 
