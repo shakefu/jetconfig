@@ -1,61 +1,62 @@
 Certificate:
     Data:
         Version: 3 (0x2)
-        Serial Number: 1 (0x1)
+        Serial Number: 3 (0x3)
         Signature Algorithm: sha1WithRSAEncryption
         Issuer: C=US, ST=California, O=shakefu/jetconfig, CN=Jacob Alheid/emailAddress=shakefu@gmail.com
         Validity
-            Not Before: Aug 18 05:04:09 2015 GMT
-            Not After : Aug 16 05:04:09 2020 GMT
-        Subject: C=US, ST=California, O=shakefu/jetconfig, CN=127.0.0.1/emailAddress=shakefu@gmail.com
+            Not Before: Aug 18 05:53:51 2015 GMT
+            Not After : Aug 16 05:53:51 2020 GMT
+        Subject: C=US, ST=California, O=shakefu/jetconfig, CN=IP:127.0.0.1/emailAddress=shakefu@gmail.com
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
             RSA Public Key: (1024 bit)
                 Modulus (1024 bit):
-                    00:cc:f5:03:f7:da:20:07:fd:c9:79:d9:5f:2a:57:
-                    ec:18:ca:9c:7c:dc:14:0c:3f:42:ec:b1:1f:ae:94:
-                    f4:29:bf:22:ad:01:15:f2:ee:be:97:97:1c:f8:fa:
-                    1a:c9:90:da:51:f3:88:ad:48:38:9e:9c:41:dc:97:
-                    96:71:3b:f9:fb:d1:38:23:7c:42:0a:1b:62:03:eb:
-                    94:8c:ca:60:59:66:7e:c6:7d:32:7e:7e:e4:39:05:
-                    a8:65:56:67:8f:8d:fe:f0:97:97:52:4f:54:39:1e:
-                    d1:97:32:f8:a2:75:22:af:ac:5f:92:8f:d7:57:2c:
-                    84:9a:fb:d7:34:e7:c2:e6:e1
+                    00:f0:37:e6:03:59:ee:7c:b1:fb:64:df:d5:37:70:
+                    f5:8e:fe:f2:84:a7:a9:53:f9:f6:61:12:33:ed:38:
+                    b2:77:28:d9:09:78:f7:69:91:06:c0:ea:ba:18:f9:
+                    ee:fd:cb:c2:70:5c:ce:1f:59:7d:49:e0:af:71:5b:
+                    6a:2e:5b:f4:a5:12:53:98:42:a9:09:73:d7:97:9b:
+                    3a:62:6e:03:eb:a9:00:b0:bb:0a:69:a9:de:fa:62:
+                    3a:af:16:79:1a:d2:4f:c6:ea:6e:91:09:4e:a6:9d:
+                    68:82:1d:71:40:2c:3a:11:fe:6d:1b:77:5a:91:ae:
+                    f2:4c:12:60:55:1b:d7:5c:bd
                 Exponent: 65537 (0x10001)
         X509v3 extensions:
             X509v3 Basic Constraints: 
                 CA:FALSE
+            Netscape Cert Type: 
+                SSL Server
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+            X509v3 Subject Alternative Name: 
+                IP Address:127.0.0.1
             Netscape Comment: 
-                OpenSSL Generated Certificate
-            X509v3 Subject Key Identifier: 
-                23:24:BD:05:0C:16:A2:AF:2C:A1:7F:B4:F0:43:F2:BB:76:C8:A4:F7
-            X509v3 Authority Key Identifier: 
-                keyid:3A:D2:85:45:62:31:78:78:10:BF:92:F8:D9:30:12:AD:C4:40:C6:52
-
+                OpenSSL Certificate for SSL Server
     Signature Algorithm: sha1WithRSAEncryption
-        30:7e:58:70:4f:d0:c7:2e:9d:e8:0b:97:53:78:c0:02:c4:23:
-        bf:fb:49:09:bf:82:54:19:40:ce:6a:40:c8:b6:c3:8b:c2:7f:
-        23:6f:7b:e1:91:b1:70:95:05:66:e7:76:5b:05:04:d3:35:5d:
-        be:24:2c:2f:08:70:32:25:5b:8a:43:b4:9f:fc:f6:c6:46:9c:
-        0a:81:70:f6:8e:ef:dc:81:4f:22:ad:78:38:a9:07:ad:d4:16:
-        fe:21:06:9a:65:1f:a8:02:60:b1:ba:cf:31:21:97:ca:57:52:
-        df:54:5c:45:34:58:18:cf:44:c1:9f:47:74:97:0a:aa:ab:e6:
-        83:f5
+        95:1e:71:01:d6:a4:c6:20:de:b9:4a:a6:1b:15:a0:7d:ac:1f:
+        99:00:41:92:f9:72:80:d6:af:ee:e1:80:71:fd:c1:6e:70:c6:
+        60:ab:72:6c:b8:c3:3c:4e:46:e3:98:c2:20:cf:96:81:0a:95:
+        69:9b:fc:a8:af:94:9a:f2:32:11:4f:e0:d8:f6:2a:ef:31:25:
+        57:65:70:d0:91:b4:7b:bc:a7:de:ca:70:3f:da:7e:1a:4c:6d:
+        7e:ce:b8:78:a5:75:00:d0:c8:28:3a:1b:19:0e:e7:ab:48:f6:
+        3e:2c:aa:89:4d:b4:92:32:3b:7c:71:b5:fc:66:da:fc:ac:8f:
+        ec:4c
 -----BEGIN CERTIFICATE-----
-MIIC3DCCAkWgAwIBAgIBATANBgkqhkiG9w0BAQUFADB3MQswCQYDVQQGEwJVUzET
+MIIC1TCCAj6gAwIBAgIBAzANBgkqhkiG9w0BAQUFADB3MQswCQYDVQQGEwJVUzET
 MBEGA1UECAwKQ2FsaWZvcm5pYTEaMBgGA1UECgwRc2hha2VmdS9qZXRjb25maWcx
 FTATBgNVBAMMDEphY29iIEFsaGVpZDEgMB4GCSqGSIb3DQEJARYRc2hha2VmdUBn
-bWFpbC5jb20wHhcNMTUwODE4MDUwNDA5WhcNMjAwODE2MDUwNDA5WjB0MQswCQYD
+bWFpbC5jb20wHhcNMTUwODE4MDU1MzUxWhcNMjAwODE2MDU1MzUxWjB3MQswCQYD
 VQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEaMBgGA1UECgwRc2hha2VmdS9q
-ZXRjb25maWcxEjAQBgNVBAMMCTEyNy4wLjAuMTEgMB4GCSqGSIb3DQEJARYRc2hh
-a2VmdUBnbWFpbC5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMz1A/fa
-IAf9yXnZXypX7BjKnHzcFAw/QuyxH66U9Cm/Iq0BFfLuvpeXHPj6GsmQ2lHziK1I
-OJ6cQdyXlnE7+fvROCN8QgobYgPrlIzKYFlmfsZ9Mn5+5DkFqGVWZ4+N/vCXl1JP
-VDke0Zcy+KJ1Iq+sX5KP11cshJr71zTnwubhAgMBAAGjezB5MAkGA1UdEwQCMAAw
-LAYJYIZIAYb4QgENBB8WHU9wZW5TU0wgR2VuZXJhdGVkIENlcnRpZmljYXRlMB0G
-A1UdDgQWBBQjJL0FDBairyyhf7TwQ/K7dsik9zAfBgNVHSMEGDAWgBQ60oVFYjF4
-eBC/kvjZMBKtxEDGUjANBgkqhkiG9w0BAQUFAAOBgQAwflhwT9DHLp3oC5dTeMAC
-xCO/+0kJv4JUGUDOakDItsOLwn8jb3vhkbFwlQVm53ZbBQTTNV2+JCwvCHAyJVuK
-Q7Sf/PbGRpwKgXD2ju/cgU8irXg4qQet1Bb+IQaaZR+oAmCxus8xIZfKV1LfVFxF
-NFgYz0TBn0d0lwqqq+aD9Q==
+ZXRjb25maWcxFTATBgNVBAMMDElQOjEyNy4wLjAuMTEgMB4GCSqGSIb3DQEJARYR
+c2hha2VmdUBnbWFpbC5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAPA3
+5gNZ7nyx+2Tf1Tdw9Y7+8oSnqVP59mESM+04snco2Ql492mRBsDquhj57v3LwnBc
+zh9ZfUngr3Fbai5b9KUSU5hCqQlz15ebOmJuA+upALC7Cmmp3vpiOq8WeRrST8bq
+bpEJTqadaIIdcUAsOhH+bRt3WpGu8kwSYFUb11y9AgMBAAGjcTBvMAkGA1UdEwQC
+MAAwEQYJYIZIAYb4QgEBBAQDAgZAMAsGA1UdDwQEAwIFoDAPBgNVHREECDAGhwR/
+AAABMDEGCWCGSAGG+EIBDQQkFiJPcGVuU1NMIENlcnRpZmljYXRlIGZvciBTU0wg
+U2VydmVyMA0GCSqGSIb3DQEBBQUAA4GBAJUecQHWpMYg3rlKphsVoH2sH5kAQZL5
+coDWr+7hgHH9wW5wxmCrcmy4wzxORuOYwiDPloEKlWmb/KivlJryMhFP4Nj2Ku8x
+JVdlcNCRtHu8p97KcD/afhpMbX7OuHildQDQyCg6GxkO56tI9j4sqolNtJIyO3xx
+tfxm2vysj+xM
 -----END CERTIFICATE-----
