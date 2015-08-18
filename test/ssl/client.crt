@@ -1,0 +1,62 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 2 (0x2)
+        Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=US, ST=California, O=shakefu/jetconfig, CN=Jacob Alheid/emailAddress=shakefu@gmail.com
+        Validity
+            Not Before: Aug 18 05:14:49 2015 GMT
+            Not After : Aug 16 05:14:49 2020 GMT
+        Subject: C=US, ST=California, O=shakefu/jetconfig, CN=Jacob Alheid/emailAddress=shakefu@gmail.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+            RSA Public Key: (1024 bit)
+                Modulus (1024 bit):
+                    00:c6:02:13:53:c4:54:33:e0:58:1a:56:78:87:67:
+                    21:73:db:5f:32:ad:e7:88:71:7b:4e:a8:41:ff:01:
+                    4c:f6:da:a1:c5:fc:44:a0:73:1c:ae:7a:8b:a5:4f:
+                    e2:13:aa:13:d9:22:b8:bc:58:c5:1a:2b:1c:2b:c7:
+                    04:27:0e:2f:da:3c:e8:b0:41:2d:b9:f5:87:70:62:
+                    58:69:e7:64:72:f0:21:4d:ee:1b:78:c8:2b:72:1c:
+                    58:d7:c6:96:a3:05:6b:1b:0a:02:bd:ed:bf:62:ba:
+                    66:b7:c2:19:bd:35:07:10:42:9e:83:5f:8d:ec:94:
+                    cb:ff:11:4b:0b:f1:51:77:b1
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Client
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            Netscape Comment: 
+                OpenSSL Certificate for SSL Client
+    Signature Algorithm: sha1WithRSAEncryption
+        8f:ca:08:26:fb:15:39:bd:89:e2:74:95:b9:81:0a:f1:f6:dd:
+        26:33:d7:a6:97:10:11:6a:11:12:ea:03:28:74:d3:72:db:c8:
+        31:25:09:d0:80:63:d6:64:6e:81:2e:98:15:86:96:27:b2:14:
+        2a:91:c1:80:e3:7b:fe:cb:68:ef:53:2e:27:58:97:c0:07:b5:
+        fc:22:6b:a6:eb:03:93:22:db:ff:28:81:f0:1f:63:14:16:df:
+        0f:33:69:d5:10:d8:1a:42:d0:0a:d4:66:70:bd:0d:56:b9:3e:
+        16:1a:42:a1:71:12:8a:e6:66:b4:c4:bd:ca:0f:41:a6:b2:ef:
+        08:66
+-----BEGIN CERTIFICATE-----
+MIIC2TCCAkKgAwIBAgIBAjANBgkqhkiG9w0BAQUFADB3MQswCQYDVQQGEwJVUzET
+MBEGA1UECAwKQ2FsaWZvcm5pYTEaMBgGA1UECgwRc2hha2VmdS9qZXRjb25maWcx
+FTATBgNVBAMMDEphY29iIEFsaGVpZDEgMB4GCSqGSIb3DQEJARYRc2hha2VmdUBn
+bWFpbC5jb20wHhcNMTUwODE4MDUxNDQ5WhcNMjAwODE2MDUxNDQ5WjB3MQswCQYD
+VQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEaMBgGA1UECgwRc2hha2VmdS9q
+ZXRjb25maWcxFTATBgNVBAMMDEphY29iIEFsaGVpZDEgMB4GCSqGSIb3DQEJARYR
+c2hha2VmdUBnbWFpbC5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMYC
+E1PEVDPgWBpWeIdnIXPbXzKt54hxe06oQf8BTPbaocX8RKBzHK56i6VP4hOqE9ki
+uLxYxRorHCvHBCcOL9o86LBBLbn1h3BiWGnnZHLwIU3uG3jIK3IcWNfGlqMFaxsK
+Ar3tv2K6ZrfCGb01BxBCnoNfjeyUy/8RSwvxUXexAgMBAAGjdTBzMAkGA1UdEwQC
+MAAwEQYJYIZIAYb4QgEBBAQDAgeAMAsGA1UdDwQEAwIFoDATBgNVHSUEDDAKBggr
+BgEFBQcDAjAxBglghkgBhvhCAQ0EJBYiT3BlblNTTCBDZXJ0aWZpY2F0ZSBmb3Ig
+U1NMIENsaWVudDANBgkqhkiG9w0BAQUFAAOBgQCPyggm+xU5vYnidJW5gQrx9t0m
+M9emlxARahES6gModNNy28gxJQnQgGPWZG6BLpgVhpYnshQqkcGA43v+y2jvUy4n
+WJfAB7X8Imum6wOTItv/KIHwH2MUFt8PM2nVENgaQtAK1GZwvQ1WuT4WGkKhcRKK
+5ma0xL3KD0Gmsu8IZg==
+-----END CERTIFICATE-----
