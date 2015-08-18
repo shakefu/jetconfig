@@ -1,7 +1,7 @@
 /* jshint expr:true */
 var _ = require('lodash');
 var pkg = require('../package.json');
-var Etcd = require('node-etcd');
+// var Etcd = require('node-etcd');
 var chai = require('chai');
 var expect = chai.expect;
 chai.should();
@@ -11,15 +11,20 @@ var Config = require('../index.js');
 
 
 before(function (done) {
-    var hosts = process.env.JETCONFIG_ETCD;
-    var etcd = new Etcd(hosts);
     var key = 'jetconfig/test/version';
+    var conf = new Config();
+    conf.set(key, pkg.version, {ttl: 1});
+    conf.get(key).should.equal(pkg.version);
+    // This doesn't work with SSL setup...
+    /*
+    var etcd = new Etcd();
     etcd.setSync(key, pkg.version, {ttl: 1});
     var res = etcd.getSync(key);
     if (!res || !res.body || !res.body.node ||
         res.body.node.value !== pkg.version ){
         return done(new Error("etcd not working properly, aborting tests"));
     }
+    */
     // Uncomment this to get helpful debug logging for all the tests
     // process.env.JETCONFIG_LOGLEVEL = 'silly';
     done();
