@@ -3,6 +3,7 @@
  *
  */
 var _ = require('lodash');
+var fs = require('fs');
 var assert = require('assert');
 var Log = require('./log');
 var Etcd = require('node-etcd');
@@ -546,6 +547,7 @@ _optsFromConfig = function _optsFromConfig (conf) {
  * @param opts {Object} - Config options
  */
 var _getEnvHosts; // _getEnvHosts(hosts)
+var _getEnvSSL; // _getEnvSSL(sslopts)
 init = function init (hosts, opts) {
     var defaults = {
         cache: true,
@@ -589,6 +591,8 @@ init = function init (hosts, opts) {
     if (opts.ssl) {
         assert(_.isPlainObject(opts.ssl), "ssl options must be object");
     }
+    opts.ssl = _getEnvSSL(opts.ssl);
+    if (opts.ssl === undefined) delete opts.ssl;
 
     // Initialize an empty cache if we're using caching
     if (opts.cache) {
@@ -640,6 +644,33 @@ _getEnvHosts = function _getEnvHosts (hosts) {
 
     hosts = _.map(hosts, _.trim);
     return hosts;
+};
+
+/**
+ * Private helper for trying to get SSL options out of the environment
+ */
+_getEnvSSL = function _getEnvSSL (sslopts) {
+    var envs = {
+        ca: 'JETCONFIG_SSL_CA',
+        cert: 'JETCONFIG_SSL_CERT',
+        key: 'JETCONFIG_SSL_KEY'
+    };
+    sslopts = sslopts || {};
+
+    // Parse the cert filenames out of the environment
+    _.forOwn(envs, function (value, key) {
+        if (process.env[value] === undefined) return;
+        value = fs.readFileSync(process.env[value]);
+        sslopts[key] = value;
+    });
+
+    // The ca key has to be an array
+    if (sslopts.ca && !_.isArray(sslopts.ca)) sslopts.ca = [sslopts.ca];
+
+    // If we didn't get anything, then just return undefined
+    if (_.isEmpty(sslopts)) return undefined;
+
+    return sslopts;
 };
 
 
