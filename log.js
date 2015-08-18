@@ -44,7 +44,7 @@ Log.prototype.log = function (msg, level) {
     if (level < this._level) return;
     if (this._levels[level] === undefined) return;
     if (this.name) {
-        msg += "[" + this.name + "] ";
+        msg = "[" + this.name + "] " + msg;
     }
     msg = this._levels[level].toUpperCase() + ' ' + msg;
     console.log(msg);

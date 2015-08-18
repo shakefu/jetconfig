@@ -660,7 +660,7 @@ _getEnvSSL = function _getEnvSSL (sslopts) {
     // Parse the cert filenames out of the environment
     _.forOwn(envs, function (value, key) {
         if (process.env[value] === undefined) return;
-        value = fs.readFileSync(process.env[value]);
+        value = fs.readFileSync(process.env[value], 'utf8');
         sslopts[key] = value;
     });
 
