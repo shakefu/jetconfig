@@ -12,7 +12,9 @@ var Config = require('../index.js');
 
 before(function (done) {
     var key = 'jetconfig/test/version';
-    var conf = new Config({logLevel: 'silly'});
+    // Uncomment to debug connection issues
+    // var conf = new Config({logLevel: 'silly'});
+    var conf = new Config();
     conf.set(key, pkg.version, {ttl: 1});
     conf.get(key).should.equal(pkg.version);
     // This doesn't work with SSL setup...
