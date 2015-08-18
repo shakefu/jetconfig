@@ -4,10 +4,10 @@ node_js:
   - "0.11"
   - "0.10"
 env:
-  - |
+  - >
     INSTALL_ETCD=2.1.1
     _ETCD="./etcd"
-  - |
+  - >
     INSTALL_ETCD=2.0.13
     _ETCD="./etcd"
 before_script:
