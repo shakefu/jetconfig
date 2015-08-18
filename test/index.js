@@ -11,7 +11,8 @@ var Config = require('../index.js');
 
 
 before(function (done) {
-    var etcd = new Etcd();
+    var hosts = process.env.JETCONFIG_ETCD;
+    var etcd = new Etcd(hosts);
     var key = 'jetconfig/test/version';
     etcd.setSync(key, pkg.version, {ttl: 1});
     var res = etcd.getSync(key);
@@ -51,10 +52,14 @@ describe("Config", function () {
         });
 
         it("should allow for env-based hosts", function () {
+            // Save the env for later
+            var env = process.env.JETCONFIG_ETCD;
             process.env.JETCONFIG_ETCD = host2;
             var conf = new Config();
             conf.hosts.should.eql([host2]);
-            delete process.env.JETCONFIG_ETCD;
+            // Restore the env
+            if (env === undefined) delete process.env.JETCONFIG_ETCD;
+            else process.env.JETCONFIG_ETCD = env;
         });
 
         it("should allow for a single string host", function () {
