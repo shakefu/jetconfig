@@ -404,7 +404,7 @@ describe("Config", function () {
         });
     });
 
-    describe('list', function () {
+    describe('#list()', function () {
         var keys = ['test1', 'test2', 'test3'];
         var conf;
         before(function () {
@@ -422,7 +422,7 @@ describe("Config", function () {
         });
     });
 
-    describe('log', function () {
+    describe('#log', function () {
         var conf;
         var JETCONFIG_LOGLEVEL;
 

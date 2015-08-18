@@ -46,6 +46,13 @@ var defaults_allowed = conf.get('app.someSetting', 'default value');
 conf.set('some.setting.here', 'new value');
 
 ```
+## Inheritance
+
+Currently undocumented...
+
+## Command Line Interface
+
+See `jetconfig --help`.
 
 ## API Documentation
 
@@ -161,6 +168,13 @@ existing configuration, use `.clear()` first.
   * **`allowInherited`** (*Boolean*) - Whether to allow inherited
     configurations (default: `true`)
 
+### `.list(`*`[key]`*`)
+
+List all etcd directories under the config prefix and *key*. If *key* is
+omitted, all directories under *prefix* are listed.
+
+* **`key`** (*String*) - Key to list (optional)
+
 ### `.clear(`*`[options]`*`)`
 
 Clears all the stored keys for the given config object in etcd. This must be
@@ -187,6 +201,8 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
+
+* **1.2.0** - Add `.list()` and command line utility.
 
 * **1.1.0** - Added configuration inheritance, other minor refactors and clean
   ups.
