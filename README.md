@@ -54,6 +54,24 @@ Currently undocumented...
 
 See `jetconfig --help`.
 
+```
+$ jetconfig -h
+
+Usage: jetconfig <command> [options]
+
+command
+  dump      Dump the current etcd configuration
+  list      List all available etcd configurations
+  clear     Clear the current etcd configuration
+  load      Load a configuration from a file
+  get       Get a configuration key
+  set       Set a configuration key to a value
+
+Options:
+   --version       Print version and exit
+   -v, --verbose   Increase verbosity, can be used multiple times
+```
+
 ## API Documentation
 
 ### `new Config(`*`[hosts], [options]`*`)`
