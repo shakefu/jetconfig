@@ -109,7 +109,7 @@ Create a new jetconfig instance.
   * **`inheritDepth`** (*Number*) - The maximum depth to check inherited
     configurations for missing keys (default: `1`)
   * **`inheritKey`** (*String*) - The configuration key name used to store the
-    inherited configuration key (default: `'jetconfig.inherit'`)
+    inherited configuration key (default: `'config.inherit'`)
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 

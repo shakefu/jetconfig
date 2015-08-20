@@ -556,7 +556,7 @@ init = function init (hosts, opts) {
         allowClear: false,
         caseSensitive: false,
         inherit: true,
-        inheritKey: 'jetconfig.inherit',
+        inheritKey: 'config.inherit',
         inheritDepth: 1,
         hosts: '127.0.0.1:2379',
     };
