@@ -577,7 +577,7 @@ describe("Config", function () {
             it("should inherit values", function () {
                 var obj = conf.dump();
                 expect(obj).to.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'config.inherit': 'jetconfig/inherit/base',
                     'some.other.value': 2,
                     'some.value': 1
                 });
@@ -585,7 +585,7 @@ describe("Config", function () {
             it("should do deep inheritance", function () {
                 var obj = child_conf.dump();
                 expect(obj).to.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'config.inherit': 'jetconfig/inherit/child',
                     'some.other.value': 2,
                     'some.value': 1
                 });
@@ -594,14 +594,14 @@ describe("Config", function () {
                 function () {
                 var obj = shallow_conf.dump();
                 expect(obj).to.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'config.inherit': 'jetconfig/inherit/child',
                     'some.other.value': 2,
                 });
             });
             it("should be able to disable inheritance", function () {
                 var obj = conf.dump({allowInherited: false});
                 expect(obj).to.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'config.inherit': 'jetconfig/inherit/base',
                     'some.other.value': 2,
                 });
             });
@@ -613,7 +613,7 @@ describe("Config", function () {
                 conf.cache.should.eql({});
                 conf.load();
                 conf.cache.should.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'config.inherit': 'jetconfig/inherit/base',
                     'some.value': 1,
                     'some.other.value': 2,
                 });
@@ -623,7 +623,7 @@ describe("Config", function () {
                 child_conf.cache.should.eql({});
                 child_conf.load();
                 child_conf.cache.should.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'config.inherit': 'jetconfig/inherit/child',
                     'some.value': 1,
                     'some.other.value': 2,
                 });
@@ -634,7 +634,7 @@ describe("Config", function () {
                 shallow_conf.cache.should.eql({});
                 shallow_conf.load();
                 shallow_conf.cache.should.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/child',
+                    'config.inherit': 'jetconfig/inherit/child',
                     'some.other.value': 2,
                 });
             });
@@ -643,7 +643,7 @@ describe("Config", function () {
                 conf.clear({cacheOnly: true});
                 conf.load(undefined, {allowInherited: false});
                 conf.cache.should.eql({
-                    'jetconfig.inherit': 'jetconfig/inherit/base',
+                    'config.inherit': 'jetconfig/inherit/base',
                     'some.other.value': 2,
                 });
             });
