@@ -220,6 +220,8 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.2.1** - Change default inheritance key to `'config.inherit'`.
+
 * **1.2.0** - Add `.list()` and command line utility.
 
 * **1.1.0** - Added configuration inheritance, other minor refactors and clean
