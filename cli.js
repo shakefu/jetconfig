@@ -59,7 +59,7 @@ parser.command('list')
         required: true
     })
     .callback(cmd(function (conf) {
-        return conf.list();
+        return conf.list(undefined, {dirOnly: false});
     }));
 
 parser.command('clear')

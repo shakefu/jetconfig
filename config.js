@@ -340,14 +340,18 @@ Config.prototype.clear = function clear (opts) {
  *
  * @param key {String} - Key to list within
  */
-Config.prototype.list = function list (key) {
+Config.prototype.list = function list (key, opts) {
+    opts = opts || {};
     key = key || '';
     var ns = this._k(key);
     var result = this.client().getSync(ns);
+
+    opts = _.defaults(opts, {dirOnly: true});
+
     if (!result) throw new Error("Unkown error");
+    this.log.silly("list result", result);
     if (result.err) {
         if (result.err.errorCode == 100) return [];
-        this.log.silly("etcd error result:", result);
         // Otherwise we throw the error so it can propagate up the stack
         throw result.err;
     }
@@ -376,8 +380,10 @@ Config.prototype.list = function list (key) {
     var keys = [];
     ns = '/' + ns;
     _.forEach(result.nodes, function (node) {
-        if (node.dir !== true) return;
+        this.log.silly(node);
+        if (opts.dirOnly && node.dir !== true) return;
         key = node.key;
+        if (node.dir === true) key += '/';
         if (_.startsWith(key, ns)) key = key.slice(ns.length);
         keys.push(key);
     }.bind(this));
@@ -572,8 +578,9 @@ init = function init (hosts, opts) {
 
     assert(_.isString(opts.logLevel), "logLevel must be string");
 
+    opts.logLevel = process.env.JETCONFIG_LOGLEVEL || opts.logLevel;
     this.log = new Log();
-    this.log.level(process.env.JETCONFIG_LOGLEVEL || opts.logLevel);
+    this.log.level(opts.logLevel);
 
     assert(_.isBoolean(opts.cache), "cache must be boolean");
     assert(_.isBoolean(opts.caseSensitive), "caseSensitive must be boolean");
