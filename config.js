@@ -382,7 +382,7 @@ Config.prototype.list = function list (key, opts) {
     _.forEach(result.nodes, function (node) {
         if (opts.dirOnly && node.dir !== true) return;
         key = node.key;
-        if (node.dir === true) key += '/';
+        if (!opts.dirOnly && node.dir === true) key += '/';
         if (_.startsWith(key, ns)) key = key.slice(ns.length);
         keys.push(key);
     }.bind(this));

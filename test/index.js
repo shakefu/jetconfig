@@ -427,8 +427,22 @@ describe("Config", function () {
             });
         });
 
-        it("should list all the keys in the prefix", function () {
+        it("should list all the non-directory keys in the prefix", function () {
             var items = conf.list('');
+            expect(items).to.not.be.undefined;
+            items.sort().should.eql(keys.sort());
+        });
+
+        it("should list all keys in the prefix", function () {
+            var key = 'keyvalue';
+            conf.set(key, 'value');
+            // Modify key names to include slashies when listing with dirs
+            for (var i=0; i<keys.length;i++) {
+                keys[i] = keys[i] + '/';
+            }
+            // Push non-dir key as well
+            keys.push(key);
+            var items = conf.list('', {dirOnly: false});
             expect(items).to.not.be.undefined;
             items.sort().should.eql(keys.sort());
         });
