@@ -1,8 +1,8 @@
 language: node_js
 node_js:
   - "0.12"
-  # - "0.11"
-  # - "0.10"
+  - "0.11"
+  - "0.10"
 env:
   - >
     INSTALL_ETCD=2.1.1
