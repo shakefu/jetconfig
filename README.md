@@ -262,6 +262,10 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.2.2**
+  - Add `dirOnly` option to `.list()`
+  - Add `-no-inherit` option to CLI
+
 * **1.2.1** - Change default inheritance key to `'config.inherit'`.
 
 * **1.2.0** - Add `.list()` and command line utility.
