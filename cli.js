@@ -13,6 +13,12 @@ parser.option('version', {
         help: "Print version and exit",
         callback: function () { console.log(require('./package').version); }
     })
+    .option('noInherit', {
+        flag: true,
+        help: "Prevent configuration inheritance",
+        abbr: 'n',
+        full: 'no-inherit',
+    })
     .option('verbose', {
         abbr: 'v',
         help: "Increase verbosity, can be used multiple times",
@@ -30,6 +36,7 @@ var cmd = function cmd (func) {
 
         opts.logLevel = log_levels[log_level];
         opts.prefix = params.prefix;
+        opts.inherit = !params.noInherit;
 
         conf = new Config(opts);
         result = func(conf, params);

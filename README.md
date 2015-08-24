@@ -69,6 +69,7 @@ command
 
 Options:
    --version       Print version and exit
+   -n, --no-inherit   Prevent configuration inheritance
    -v, --verbose   Increase verbosity, can be used multiple times
 ```
 
