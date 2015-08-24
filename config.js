@@ -599,6 +599,8 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
+    opts.hosts = _getEnvHosts(opts.hosts);
+
     this.log.debug("new Config", _.assign(_.defaults({}, opts), {
         ssl: opts.ssl ? true : false
     }));
@@ -607,7 +609,7 @@ init = function init (hosts, opts) {
     this.caseSensitive = opts.caseSensitive;
     this.prefix = opts.prefix;
     this.sslopts = opts.ssl;
-    this.hosts = _getEnvHosts(opts.hosts);
+    this.hosts = opts.hosts;
     this.allowClear = opts.allowClear;
 
     this.inheritKey = opts.inheritKey;
