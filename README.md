@@ -225,12 +225,14 @@ existing configuration, use `.clear()` first.
   * **`allowInherited`** (*Boolean*) - Whether to allow inherited
     configurations (default: `true`)
 
-### `.list(`*`[key]`*`)`
+### `.list(`*`[key], [options]`*`)`
 
 List all etcd directories under the config prefix and *key*. If *key* is
 omitted, all directories under *prefix* are listed.
 
 * **`key`** (*String*) - Key to list (optional)
+* **`options`** (*Object*) - Options
+  * **`dirOnly`** (*Boolean*) - List only directories (default: `true`)
 
 ### `.clear(`*`[options]`*`)`
 
