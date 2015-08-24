@@ -46,9 +46,6 @@ var defaults_allowed = conf.get('app.someSetting', 'default value');
 conf.set('some.setting.here', 'new value');
 
 ```
-## Inheritance
-
-Currently undocumented...
 
 ## Command Line Interface
 
@@ -91,6 +88,25 @@ The following variables are available:
   `'warn'` or `'critical'`.
 * **`JETCONFIG_PREFIX`** (Not Implemented) - Prefix for the configuration in
   etcd
+
+**Example:**
+
+Here's an example using the *jetconfig* CLI to connect to a production cluster.
+
+```bash
+$ export JETCONFIG_ETCD="10.0.0.101:2379,10.0.0.102:2379,10.0.0.103:2379"
+$ export JETCONFIG_SSL_CA="/home/core/etcd/ca.crt"
+$ export JETCONFIG_SSL_CERT="/home/core/etcd/client.crt"
+$ export JETCONFIG_SSL_KEY="/home/core/etcd/client.key"
+$ jetconfig dump /config
+{
+  "jetconfig.version": "1.2.1"
+}
+```
+
+## Inheritance
+
+Currently undocumented...
 
 ## API Documentation
 
