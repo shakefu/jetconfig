@@ -266,6 +266,8 @@ Return a reference to the underlying *node-etcd* client instance.
   - Add `dirOnly` option to `.list()`
   - Add `-no-inherit` option to CLI
 
+  *Released August 24, 2015.*
+
 * **1.2.1** - Change default inheritance key to `'config.inherit'`.
 
 * **1.2.0** - Add `.list()` and command line utility.
