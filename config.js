@@ -380,7 +380,6 @@ Config.prototype.list = function list (key, opts) {
     var keys = [];
     ns = '/' + ns;
     _.forEach(result.nodes, function (node) {
-        this.log.silly(node);
         if (opts.dirOnly && node.dir !== true) return;
         key = node.key;
         if (node.dir === true) key += '/';
