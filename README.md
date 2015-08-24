@@ -72,6 +72,26 @@ Options:
    -v, --verbose   Increase verbosity, can be used multiple times
 ```
 
+## Environment Variables
+
+When connecting to non-default hosts and ports using the CLI or for convenience
+when using the API, you can configure *jetconfig* to connect using environment
+variables.
+
+The following variables are available:
+
+* **`JETCONFIG_ETCD`** - Comma separated list of members in the etcd cluster,
+  like `"10.0.0.1:2379,10.0.0.2:2379,10.0.0.3:2379"`
+* **`JETCONFIG_SSL_CA`** - SSL CA certificate file if your etcd SSL setup uses
+  a nonstandard root or intermediary
+* **`JETCONFIG_SSL_CERT`** - SSL client certificate file
+* **`JETCONFIG_SSL_KEY`** - SSL client key file
+* **`JETCONFIG_LOGLEVEL`** - Set the log level for the jetconfig module
+  (default: `'critical'`). Must be one of `'silly'`, `'debug'`, `'info'`,
+  `'warn'` or `'critical'`.
+* **`JETCONFIG_PREFIX`** (Not Implemented) - Prefix for the configuration in
+  etcd
+
 ## API Documentation
 
 ### `new Config(`*`[hosts], [options]`*`)`
