@@ -51,6 +51,9 @@ conf.set('some.setting.here', 'new value');
 
 See `jetconfig --help`.
 
+If you don't have `./node_modules/.bin` on your `$PATH` you may want to install
+the jetconfig module globally to make the command available.
+
 ```
 $ jetconfig -h
 
