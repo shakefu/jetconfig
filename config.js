@@ -87,7 +87,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // query etcd and return undefined
     if (cacheEnabled && cacheOnly) {
         this.log.debug('get', '/' + this._k(key), 'undefined',
-                '(skipped, cacheOnly');
+                '(skipped, cacheOnly)');
         return undefined;
     }
 
