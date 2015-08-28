@@ -562,7 +562,7 @@ init = function init (hosts, opts) {
         caseSensitive: false,
         inherit: true,
         inheritKey: 'config.inherit',
-        inheritDepth: 1,
+        inheritDepth: 2,
         hosts: '127.0.0.1:2379',
     };
     if (_.isPlainObject(hosts)) {
