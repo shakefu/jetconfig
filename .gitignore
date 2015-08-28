@@ -27,3 +27,5 @@ build/Release
 node_modules
 
 local.conf
+
+test/ssl/ca
