@@ -40,7 +40,8 @@ var cmd = function cmd (func) {
 
         conf = new Config(opts);
         result = func(conf, params);
-        if (result) console.log(JSON.stringify(result, null, 2));
+        if (result !== undefined) console.log(JSON.stringify(result, null, 2));
+        else console.log('undefined');
     };
     return handler;
 };
@@ -124,7 +125,9 @@ parser.command('get')
         required: true
     })
     .callback(cmd(function (conf, params) {
-        return conf.get(params.key, params.value) || process.exit(1);
+        value = conf.get(params.key, params.value);
+        if (value === undefined) process.exit(1);
+        return value;
     }));
 
 parser.command('set')
