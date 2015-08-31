@@ -41,7 +41,6 @@ var cmd = function cmd (func) {
         conf = new Config(opts);
         result = func(conf, params);
         if (result !== undefined) console.log(JSON.stringify(result, null, 2));
-        else console.log('undefined');
     };
     return handler;
 };
