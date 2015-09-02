@@ -262,6 +262,10 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.2.3** - Minor typo fix, and set the default `inheritDepth` to 2.
+
+  *Released September 1, 2015.*
+
 * **1.2.2**
   - Add `dirOnly` option to `.list()`
   - Add `-no-inherit` option to CLI
