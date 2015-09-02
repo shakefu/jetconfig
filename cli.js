@@ -124,7 +124,7 @@ parser.command('get')
         required: true
     })
     .callback(cmd(function (conf, params) {
-        value = conf.get(params.key, params.value);
+        var value = conf.get(params.key, params.value);
         if (value === undefined) process.exit(1);
         return value;
     }));
