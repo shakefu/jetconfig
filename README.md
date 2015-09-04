@@ -7,10 +7,16 @@ etcd based configuration for node.js
 
 * Namespace prefixes for configurations to allow individual apps or modules to
   operate using a single etcd cluster
+* Configuration inheritance
 * Synchronous and callbacks supported for most API methods
 * In-process caching of configuration settings by default for best performance
 * Cache-only operating mode for when etcd is not available
 * Loading/dumping of entire configuration for backups or test configurations
+
+Coming soon:
+
+* Filesystem caching
+* Easy encryption for `jetconfig dump`
 
 ## Installation
 
