@@ -120,6 +120,8 @@ configurations. This allows you to create child configurations that may only
 alter one or two values from a parent configuration without having to copy and
 maintain the entire group of settings.
 
+##### Constructor-based inheritance
+
 Inheritance is triggered in one of two ways, first, you can pass a string name
 to the `inherit` option when creating an new `Config` instance. Below is an
 example of this constructor-based inheritance:
@@ -149,6 +151,8 @@ child.load({
 child.get('shared.key'); // === true
 child.get('some.key'); // === 'from child'
 ```
+
+##### Key-based inheritance
 
 The second way to trigger inheritance is to use a special key within the
 configuration itself to specify the parent. By default, this will be
