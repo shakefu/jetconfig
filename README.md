@@ -92,6 +92,11 @@ The following variables are available:
   `'warn'` or `'critical'`.
 * **`JETCONFIG_PREFIX`** (Not Implemented) - Prefix for the configuration in
   etcd
+* **`JETCONFIG_CACHE`** (Not Implemented) - Filesystem cache file name used in
+  lieu of making requests to etcd... not recommend for production deployments
+  where you want all your settings to stay up to date all thime, but helpful in
+  development when you have to restart your process often and the etcd
+  roundtrip is too much overhead.
 
 **Example:**
 
@@ -110,7 +115,71 @@ $ jetconfig dump /config
 
 ## Inheritance
 
-Currently undocumented...
+One of the major features of *jetconfig* is the ability to inherit
+configurations. This allows you to create child configurations that may only
+alter one or two values from a parent configuration without having to copy and
+maintain the entire group of settings.
+
+Inheritance is triggered in one of two ways, first, you can pass a string name
+to the `inherit` option when creating an new `Config` instance. Below is an
+example of this constructor-based inheritance:
+
+```javascript
+var parent = Config({
+        prefix: 'config/parent',
+    });
+
+var child = Config({
+        prefix: 'config/child',
+        inherit: 'config/parent',
+    });
+
+// This is the base configuration, and it is inherited by the child
+parent.load({
+    'shared.key': true,
+    'some.key': 'from parent'
+});
+
+// This is the more specific configuration and it uses values from the parent
+if it doesn't have it defined
+child.load({
+    'some.key': 'from child'
+});
+
+child.get('shared.key'); // === true
+child.get('some.key'); // === 'from child'
+```
+
+The second way to trigger inheritance is to use a special key within the
+configuration itself to specify the parent. By default, this will be
+`'config.inherit'` but it can be changed with the `inheritKey` parameter to the
+`Config()` constructor.
+
+Here is how to key-based inheritance, continuing the example from above:
+
+```javascript
+var conf = Config({
+        prefix: 'config/other'
+    });
+
+// By default, `inheritKey` will be 'config.inherit'
+conf.load({
+    'extra.key': 'inheritance, yey!',
+    'config.inherit': 'config/child'
+});
+
+// If we set the inherit key on the `child` as well, we enable deep inheritance
+child.set(conf.inheritKey, 'config/parent');
+
+conf.get('shared.key') // === true
+conf.get('some.key') // === 'from child'
+conf.get('extra.key') // === 'inheritance, yey!'
+```
+
+Only the key-based inheritance allows for deep inheritance, and by default, the
+max `inheritDepth` is set to 2, meaning a child configuration will only look as
+far back as its grandparent to find a value for a given key. This may be set
+arbitrarily high, but at some point will incur a fair amount of overhead.
 
 ## API Documentation
 
