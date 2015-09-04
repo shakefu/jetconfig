@@ -149,7 +149,7 @@ parent.load({
 });
 
 // This is the more specific configuration and it uses values from the parent
-// if it doesn't have it defined
+// if it doesn't have the key defined itself, like the 'shared.key'
 child.load({
     'some.key': 'from child'
 });
