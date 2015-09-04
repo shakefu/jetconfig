@@ -11,6 +11,10 @@ var Config = require('../index.js');
 
 
 before(function (done) {
+    if (process.env.JETCONFIG_ETCD) {
+        console.log("JETCONFIG_ETCD is set... refusing to run tests.");
+        process.exit(1);
+    }
     var key = 'jetconfig/test/version';
     // Uncomment to debug connection issues
     // var conf = new Config({logLevel: 'silly'});
