@@ -96,13 +96,13 @@ The following variables are available:
 * **`JETCONFIG_LOGLEVEL`** - Set the log level for the jetconfig module
   (default: `'critical'`). Must be one of `'silly'`, `'debug'`, `'info'`,
   `'warn'` or `'critical'`.
-* **`JETCONFIG_PREFIX`** (Not Implemented) - Prefix for the configuration in
-  etcd
-* **`JETCONFIG_CACHE`** (Not Implemented) - Filesystem cache file name used in
+* **`JETCONFIG_CACHE`** - Filesystem cache file name used in
   lieu of making requests to etcd... not recommend for production deployments
-  where you want all your settings to stay up to date all thime, but helpful in
+  where you want all your settings to stay up to date all time, but helpful in
   development when you have to restart your process often and the etcd
   roundtrip is too much overhead.
+* **`JETCONFIG_PREFIX`** (Not Implemented) - Prefix for the configuration in
+  etcd
 
 **Example:**
 
@@ -212,7 +212,8 @@ Create a new jetconfig instance.
   * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
   * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
     documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
-    more information.
+    more information. These are not filenames, but the actual files already
+    loaded.
     * **`ca`** - Certificate Authority
     * **`cert`** - Client certificate
     * **`key`** - Client key
@@ -229,6 +230,7 @@ Create a new jetconfig instance.
     configurations for missing keys (default: `1`)
   * **`inheritKey`** (*String*) - The configuration key name used to store the
     inherited configuration key (default: `'config.inherit'`)
+  * **`fileCache`** (*String*) - File name to use for filesystem cache
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
