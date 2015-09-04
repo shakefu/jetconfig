@@ -571,6 +571,7 @@ init = function init (hosts, opts) {
         inheritKey: 'config.inherit',
         inheritDepth: 2,
         hosts: '127.0.0.1:2379',
+        fileCache: false,
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -614,6 +615,8 @@ init = function init (hosts, opts) {
 
     opts.hosts = _getEnvHosts(opts.hosts);
 
+    opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
+
     this.log.debug("new Config", _.assign(_.defaults({}, opts), {
         ssl: opts.ssl ? true : false
     }));
@@ -644,6 +647,23 @@ init = function init (hosts, opts) {
     }
     else assert(false, "inherit must be String or Boolean");
 
+    /* TODO: Implement file caching... this probably has to be a lazy load
+     * and replace `.cache` with `.cache()` across the board.
+     *
+     * The file has to work for all prefixes, so it format will be something
+     * like this:
+     *
+     * {
+     *     '/some/prefix': {
+     *         'config.value': 1
+     *     },
+     *     '/some/other/prefix': {
+     *         'other.value': true
+     *     }
+     * }
+     *
+     * This will be useful: https://www.npmjs.com/package/jsonfile
+     */
 };
 
 
