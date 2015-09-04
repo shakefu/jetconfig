@@ -141,7 +141,7 @@ parent.load({
 });
 
 // This is the more specific configuration and it uses values from the parent
-if it doesn't have it defined
+// if it doesn't have it defined
 child.load({
     'some.key': 'from child'
 });
