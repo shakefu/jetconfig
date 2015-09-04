@@ -305,6 +305,13 @@ describe("Config", function () {
             expect(dump).to.not.be.undefined;
             dump.should.eql({someKey: 'Value'});
         });
+
+        it("should have an informative error message", function () {
+            var nicely = new Config({prefix: 'jetconfig/not_real'});
+            nicely.log.level('silly');
+            expect(nicely.dump.bind(nicely))
+                .to.throw('Key not found: /jetconfig/not_real');
+        });
     });
 
     describe('#load()', function () {
@@ -506,6 +513,9 @@ describe("Config", function () {
         var base_conf;
         var child_conf;
         var shallow_conf;
+        var missing_conf;
+        var key_based_conf;
+        var key_child_conf;
 
         before(function () {
             conf = new Config({
@@ -526,6 +536,18 @@ describe("Config", function () {
                 allowClear: true,
                 inheritDepth: 1,
             });
+            missing_conf = new Config({
+                prefix: 'jetconfig/inherit/missing',
+                allowClear: true,
+            });
+            key_based_conf = new Config({
+                prefix: 'jetconfig/inherit/key-based',
+                inherit: 'jetconfig/inherit/base'
+            });
+            key_child_conf = new Config({
+                prefix: 'jetconfig/inherit/key-child',
+                inherit: 'jetconfig/inherit/key-based'
+            });
 
             base_conf.set('some.value', 1);
             base_conf.set('some.other.value', 1);
@@ -537,6 +559,12 @@ describe("Config", function () {
 
             shallow_conf.set(shallow_conf.inheritKey,
                     'jetconfig/inherit/child');
+
+            missing_conf.set(missing_conf.inheritKey,
+                    'jetconfig/inherit/not_here');
+
+            key_based_conf.set('a.value', 1);
+            key_child_conf.set('a.value', 2);
         });
 
         describe('new', function () {
@@ -589,6 +617,14 @@ describe("Config", function () {
                 });
             });
 
+            it("should work with key-based inheritance", function () {
+                expect(key_based_conf.get('some.value')).to.equal(1);
+            });
+
+            it("should not do deep inheritance with only keys", function () {
+                expect(key_child_conf.get('some.value')).to.be.undefined;
+                expect(key_child_conf.get('a.value')).to.equal(2);
+            });
         });
 
         describe('#dump()', function () {
@@ -623,6 +659,29 @@ describe("Config", function () {
                     'some.other.value': 2,
                 });
             });
+            it("should work if the config.inherit specified isn't present",
+                function () {
+                var obj = missing_conf.dump({});
+                expect(obj).to.eql({
+                    'config.inherit': 'jetconfig/inherit/not_here'
+                });
+            });
+            it("should work with key-based inheritance", function () {
+                var obj = key_based_conf.dump();
+                expect(obj).to.eql({
+                    'some.value': 1,
+                    'a.value': 1,
+                    'some.other.value': 1
+                });
+            });
+
+            it("should not do deep inheritance with only keys", function () {
+                var obj = key_child_conf.dump();
+                expect(obj).to.eql({
+                    'a.value': 2
+                });
+            });
+
         });
 
         describe('#load()', function () {

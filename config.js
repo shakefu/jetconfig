@@ -29,6 +29,7 @@ exports.Config = Config;
  * @param opts {Object} - Options to use (optional)
  * @param callback {Function=} - Callback (optional)
  */
+var _nice; // _nice(err)
 Config.prototype.get = function get (key, def, opts, callback) {
     var cacheEnabled = this.cacheEnabled;
     var cacheResult = cacheEnabled;
@@ -97,7 +98,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // Helper for behavior switching between callback or synchronous
     var cb = function cb (err, result) {
         if (callback) return callback(err, result);
-        if (err) throw err;
+        if (err) throw _nice(err);
         return result;
     };
 
@@ -192,7 +193,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
     if (!_.isFunction(callback)) {
         result = this.client().setSync(this._k(key), json_value, opts);
         this.log.silly("etcd set result:", result);
-        if (result.err) throw result.err;
+        if (result.err) throw _nice(result.err);
         if (this.cacheEnabled) this.cache[key] = value;
         return this;
     }
@@ -214,6 +215,7 @@ Config.prototype.set = function set (key, value, opts, callback) {
  * Dump the current config as an object suitable for serialization to JSON.
  */
 Config.prototype.dump = function dump (opts) {
+    this.log.silly("dump", this.prefix, opts || '');
     var result = this.client().getSync(this.prefix, {recursive: true});
     var nodes;
     var obj = {};
@@ -223,7 +225,8 @@ Config.prototype.dump = function dump (opts) {
         allowInherited: true
     });
 
-    if (result.err) throw result.err;
+    this.log.silly("etcd dump result", result);
+    if (result.err) throw _nice(result.err);
     if (!result.body || !result.body.node || !result.body.node.nodes) {
         this.log.warn("etcd unknown result:", result);
         return;
@@ -232,8 +235,12 @@ Config.prototype.dump = function dump (opts) {
     this._getInheritConfig();
     if (this.inherit && opts.allowInherited) {
         this.log.silly("Inheriting...");
-        var base = this.inheritConfig.dump();
-        _.assign(obj, base);
+        try {
+            var base = this.inheritConfig.dump();
+            _.assign(obj, base);
+        } catch (err) {
+            this.log.warn("Unable to inherit:", err);
+        }
     }
 
     // Iterate over the returned nodes
@@ -314,7 +321,7 @@ Config.prototype.clear = function clear (opts) {
         var result = this.client().rmdirSync(this.prefix, {recursive: true});
         if (result.err) {
             if (result.err.errorCode === 100) return;
-            throw result.err;
+            throw _nice(result.err);
         }
         this.log.silly("etcd delete result:", result);
 
@@ -348,12 +355,12 @@ Config.prototype.list = function list (key, opts) {
 
     opts = _.defaults(opts, {dirOnly: true});
 
-    if (!result) throw new Error("Unkown error");
+    if (!result) throw new Error("Unknown error");
     this.log.silly("list result", result);
     if (result.err) {
         if (result.err.errorCode == 100) return [];
         // Otherwise we throw the error so it can propagate up the stack
-        throw result.err;
+        throw _nice(result.err);
     }
 
     // Handle a missing body (shouldn't happen?)
@@ -425,7 +432,7 @@ Config.prototype._parseResult = function _parseResult (result) {
         if (result.err.errorCode == 100) return;
         this.log.silly("etcd error result:", result);
         // Otherwise we throw the error so it can propagate up the stack
-        throw result.err;
+        throw _nice(result.err);
     }
 
     // Handle a missing body (shouldn't happen?)
@@ -713,3 +720,15 @@ _flatten = function(data) {
     recurse(data, "");
     return result;
 };
+
+
+/**
+ * Private helper to make error messages more informative.
+ */
+_nice = function (err) {
+    if (err.error.cause) {
+        err.message = err.error.message + ": " + err.error.cause;
+    }
+    return err;
+};
+
