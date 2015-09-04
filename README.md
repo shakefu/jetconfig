@@ -31,7 +31,7 @@ jetconfig isn't going to do you a lot of good.
 
 ## Getting started
 
-Without any other parameters, jetconfig will try to connect to an etcd instance
+Without any other options, jetconfig will try to connect to an etcd instance
 running on `127.0.0.1:2379` and use a namespace prefix of `config/`.
 
 ```javascript
@@ -162,7 +162,7 @@ child.get('some.key'); // === 'from child'
 
 The second way to trigger inheritance is to use a special key within the
 configuration itself to specify the parent. By default, this will be
-`'config.inherit'` but it can be changed with the `inheritKey` parameter to the
+`'config.inherit'` but it can be changed with the `inheritKey` option to the
 `Config()` constructor.
 
 Here is how to key-based inheritance, continuing the example from above:
