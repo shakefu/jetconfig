@@ -43,6 +43,7 @@
     "mocha": "^2.2.5"
   },
   "dependencies": {
+    "http-sync": "^0.1.2",
     "lodash": "^3.10.0",
     "node-etcd": "^4.1.0",
     "nomnom": "^1.8.1"
