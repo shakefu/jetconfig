@@ -7,7 +7,8 @@ var expect = chai.expect;
 chai.should();
 // var should = chai.should();
 
-var Config = require('../index.js');
+var Config = require('../index');
+var FileCache = require('../config').FileCache;
 
 
 before(function (done) {
@@ -308,7 +309,6 @@ describe("Config", function () {
 
         it("should have an informative error message", function () {
             var nicely = new Config({prefix: 'jetconfig/not_real'});
-            nicely.log.level('silly');
             expect(nicely.dump.bind(nicely))
                 .to.throw('Key not found: /jetconfig/not_real');
         });
@@ -728,3 +728,22 @@ describe("Config", function () {
     });
 });
 
+
+describe("FileCache", function () {
+    it("should be able to read and write /tmp", function () {
+        var result = FileCache.checkPermissions('/tmp');
+        expect(result).to.equal(true);
+    });
+
+    it("should not be able to write /sbin", function () {
+        expect(FileCache.checkPermissions.bind(undefined, '/sbin'))
+            .to.throw("Could not open jetconfig cache: EACCES, " +
+                "permission denied '/sbin/.jetconfig'");
+    });
+
+    it.skip("should not be able to read a directory", function () {
+        // Not sure what a cross-platform directory that will work here is
+        var result = FileCache.checkPermissions('/etc/ssl');
+        expect(result).to.equal(false);
+    });
+});

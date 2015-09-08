@@ -4,6 +4,7 @@
  */
 var _ = require('lodash');
 var fs = require('fs');
+var path = require('path');
 var assert = require('assert');
 var Log = require('./log');
 var Etcd = require('node-etcd');
@@ -11,6 +12,9 @@ var Etcd = require('node-etcd');
 
 /**
  * Create a new config instance backed by etcd
+ *
+ * @param hosts {String|Array} - etcd hostsnames
+ * @param options {Object} - options object
  */
 var _optsFromConfig; // _optsFromConfig(conf);
 var init; // init(hosts, opts)
@@ -19,6 +23,19 @@ var Config = function Config (hosts, opts) {
     init.call(this, hosts, opts);
 };
 exports.Config = Config;
+
+/**
+ * The file cache
+ *
+ * @param conf {Object} - A `Config` object
+ * @param dirname {String} - The directory to store cache in
+ */
+var FileCache = function FileCache (conf, dirname) {
+    this.conf = conf;
+    this.dirname = dirname;
+    process.on('exit', this.saveCache.bind(this));
+};
+exports.FileCache = FileCache;
 
 
 /**
@@ -405,6 +422,7 @@ Config.prototype.client = function client () {
     // If we've already got a client, just return it
     if (this._client) return this._client;
 
+    this.log.silly("new etcd client");
     this._client = new Etcd(this.hosts, this.sslopts);
     return this._client;
 };
@@ -586,7 +604,7 @@ init = function init (hosts, opts) {
     assert(_.isString(opts.logLevel), "logLevel must be string");
 
     opts.logLevel = process.env.JETCONFIG_LOGLEVEL || opts.logLevel;
-    this.log = new Log();
+    this.log = new Log('jetconfig');
     this.log.level(opts.logLevel);
 
     assert(_.isBoolean(opts.cache), "cache must be boolean");
@@ -616,6 +634,9 @@ init = function init (hosts, opts) {
     opts.hosts = _getEnvHosts(opts.hosts);
 
     opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
+    if (opts.fileCache !== false) {
+        FileCache.checkPermissions(opts.fileCache);
+    }
 
     this.log.debug("new Config", _.assign(_.defaults({}, opts), {
         ssl: opts.ssl ? true : false
@@ -647,23 +668,10 @@ init = function init (hosts, opts) {
     }
     else assert(false, "inherit must be String or Boolean");
 
-    /* TODO: Implement file caching... this probably has to be a lazy load
-     * and replace `.cache` with `.cache()` across the board.
-     *
-     * The file has to work for all prefixes, so it format will be something
-     * like this:
-     *
-     * {
-     *     '/some/prefix': {
-     *         'config.value': 1
-     *     },
-     *     '/some/other/prefix': {
-     *         'other.value': true
-     *     }
-     * }
-     *
-     * This will be useful: https://www.npmjs.com/package/jsonfile
-     */
+    // Initialize the FileCache for this config
+    if (opts.fileCache) {
+        opts.fileCache = new FileCache(this, opts.fileCache);
+    }
 };
 
 
@@ -752,3 +760,32 @@ _nice = function (err) {
     return err;
 };
 
+
+/*******************
+ * FileCache methods
+ */
+
+
+/**
+ * Return `true` if *dirname* is readable and writable by this process,
+ * otherwise `false`.
+ *
+ * @param dirname {String} - A directory path
+ */
+FileCache.checkPermissions = function checkPermissions (dirname) {
+    try {
+        // If this works, we can assume read/write permissions
+        fs.closeSync(fs.openSync(path.resolve(dirname, './.jetconfig'), 'a+'));
+        return true;
+    }
+    catch (err) {
+        err.message = 'Could not open jetconfig cache: ' + err.message;
+        throw err;
+    }
+};
+
+
+FileCache.prototype.saveCache = function saveCache () {
+    console.log("Saving cache for", this.conf.prefix, "to",
+            this.conf.fileCache);
+};
