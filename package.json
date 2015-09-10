@@ -43,7 +43,7 @@
     "mocha": "^2.2.5"
   },
   "dependencies": {
-    "jsonfile": "^2.2.1",
+    "fs-extra": "^0.24.0",
     "lodash": "^3.10.0",
     "node-etcd": "^4.1.0",
     "nomnom": "^1.8.1"
