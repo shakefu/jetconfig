@@ -10,12 +10,13 @@ etcd based configuration for node.js
 * Configuration inheritance
 * Synchronous and callbacks supported for most API methods
 * In-process caching of configuration settings by default for best performance
-* Cache-only operating mode for when etcd is not available
+* File-based caching of configuration for faster performance when up-to-date
+  configuration is not required
+* Cache-only operating mode for better performance
 * Loading/dumping of entire configuration for backups or test configurations
 
 Coming soon:
 
-* Filesystem caching
 * Easy encryption for `jetconfig dump`
 
 ## Installation
@@ -191,6 +192,12 @@ max `inheritDepth` is set to 2, meaning a child configuration will only look as
 far back as its grandparent to find a value for a given key. This may be set
 arbitrarily high, but at some point will incur a fair amount of overhead.
 
+## File-based caching
+
+Jetconfig can use the filesystem to speed up loading of the configuration.
+
+TODO: Finish this section.
+
 ## API Documentation
 
 ### `new Config(`*`[hosts], [options]`*`)`
@@ -230,7 +237,8 @@ Create a new jetconfig instance.
     configurations for missing keys (default: `1`)
   * **`inheritKey`** (*String*) - The configuration key name used to store the
     inherited configuration key (default: `'config.inherit'`)
-  * **`fileCache`** (*String*) - File name to use for filesystem cache
+  * **`fileCache`** (*String*) - Directory to use for filesystem cache.
+    *jetconfig* will attempt to create this directory if it doesn't exist.
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
@@ -292,6 +300,9 @@ the loaded configuration to etcd as well.
 If *load* is called multiple times, by default, the subsequent loads will be
 merged into the configuration cache. Specify the option `merge: false` if you
 want to instead clear the cache first.
+
+If this *Config* has a *fileCache* enabled, calling *load* will read that file,
+if it exists, in lieu of reading the configuration from etcd.
 
 When writing to etcd, the configuration will always be merged into the existing
 etcd configuration, instead of being overwritten. If you wish to overwrite the
