@@ -196,7 +196,17 @@ arbitrarily high, but at some point will incur a fair amount of overhead.
 
 Jetconfig can use the filesystem to speed up loading of the configuration.
 
-TODO: Finish this section.
+If jetconfig is using file-based caching, and the cache exists, it will not
+read from etcd unless necessary (e.g. it does not have a cached copy of a key).
+
+The file-based cache is read from when the `.load()` method is called.
+
+**Note:** If you do not delete the `.json` file used for the cache, the
+configuration will never be updated to reflect new settings in etcd. Cache
+invalidation is hard. A future version of jetconfig may include automatic
+invalidation.
+
+TODO: Example and use cases.
 
 ## API Documentation
 
