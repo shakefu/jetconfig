@@ -272,7 +272,9 @@ describe("Config", function () {
         var conf;
 
         before(function () {
-            conf = new Config({prefix: 'jetconfig/dump'});
+            conf = new Config({
+                prefix: 'jetconfig/dump',
+            });
             conf.set('ph.alpha', 'a');
             conf.set('ph.beta', 'b');
             conf.set('ph.obj', {'o': 1});
@@ -827,12 +829,28 @@ describe("FileCache", function () {
                 fileCache: cachedir,
             });
             conf1.set('a.value', true);
+            // Here we call load() to ensure we write to the cache
+            conf1.load();
             var conf2 = new Config({
                 prefix: prefix,
                 fileCache: cachedir,
             });
-            conf2.load();
+            // We're using fileCacheOnly to ensure we don't read from etcd
+            conf2.load(undefined, {fileCacheOnly: true});
             expect(conf2.get('a.value', undefined, {cacheOnly: true}))
+                .to.equal(true);
+        });
+
+        it("should take the cache setting from the environment",
+                function () {
+            var _env = process.env;
+            process.env.JETCONFIG_CACHE = '/tmp/jetconfig';
+            var conf = new Config({
+                prefix: 'jetconfig/test/filecache/save_and_load',
+            });
+            process.env = _env;
+            conf.load();
+            expect(conf.get('a.value', undefined, {cacheOnly: true}))
                 .to.equal(true);
         });
     });

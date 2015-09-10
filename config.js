@@ -314,6 +314,14 @@ Config.prototype.load = function load (config, opts) {
             this.log.debug("File caching successful, skipping etcd load.");
             return;
         }
+        else if (opts.fileCacheOnly) {
+            this.log.debug("No file cache present, but fileCacheOnly == true," +
+                    " skipping load");
+            return;
+        }
+        else {
+            this.log.debug("No file cache present, loading from etcd...");
+        }
     }
 
     // If we don't have a config, load the existing etcd config
@@ -657,7 +665,7 @@ init = function init (hosts, opts) {
     opts.hosts = _getEnvHosts(opts.hosts);
 
     opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
-    if (opts.fileCache !== false) {
+    if (opts.fileCache) {
         FileCache.checkPermissions(opts.fileCache);
     }
 
@@ -796,6 +804,9 @@ _nice = function (err) {
  * @param dirname {String} - A directory path
  */
 FileCache.checkPermissions = function checkPermissions (dirname, filename) {
+    if (dirname === undefined || dirname == 'undefined') {
+        throw new Error("Undefined directory name");
+    }
     filename = filename || '.jetconfig';
     try {
         // Attempt to create the directory if it doesn't exist
