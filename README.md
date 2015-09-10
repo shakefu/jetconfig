@@ -364,6 +364,10 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.3.0** - Adds filesystem caching capabilities.
+
+  *Released September 10, 2015.*
+
 * **1.2.3** - Minor typo fix, and set the default `inheritDepth` to 2.
 
   *Released September 1, 2015.*
