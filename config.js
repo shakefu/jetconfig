@@ -3,7 +3,8 @@
  *
  */
 var _ = require('lodash');
-var fs = require('fs');
+var fs = require('fs-extra');
+var path = require('path');
 var assert = require('assert');
 var Log = require('./log');
 var Etcd = require('node-etcd');
@@ -11,6 +12,9 @@ var Etcd = require('node-etcd');
 
 /**
  * Create a new config instance backed by etcd
+ *
+ * @param hosts {String|Array} - etcd hostsnames
+ * @param options {Object} - options object
  */
 var _optsFromConfig; // _optsFromConfig(conf);
 var init; // init(hosts, opts)
@@ -19,6 +23,24 @@ var Config = function Config (hosts, opts) {
     init.call(this, hosts, opts);
 };
 exports.Config = Config;
+
+/**
+ * The file cache
+ *
+ * @param conf {Object} - A `Config` object
+ * @param dirname {String} - The directory to store cache in
+ */
+var FileCache = function FileCache (conf, dirname) {
+    // The configuration this instance works with
+    this.conf = conf;
+    // The directory it's going to save cached JSON in
+    this.dirname = dirname;
+    // Whether or not this has been loaded
+    this.loaded = false;
+    // Maybe add an exit save hook?
+    // process.on('exit', this.saveCache.bind(this));
+};
+exports.FileCache = FileCache;
 
 
 /**
@@ -260,6 +282,7 @@ Config.prototype.dump = function dump (opts) {
         key = this._k(key, false);
         obj[key] = value;
     }
+
     return obj;
 };
 
@@ -274,11 +297,31 @@ Config.prototype.load = function load (config, opts) {
         allowInherited: true,
         cacheOnly: true,
         merge: true,
+        fileCacheOnly: false,
     });
 
     // If the given config is an object, flatten the keys
     if (_.isPlainObject(config)) {
         config = _flatten(config);
+    }
+
+    // Try to load the fileCache instead of loading from etcd
+    if (opts.fileCacheOnly || (config === undefined && this.fileCache)) {
+        this.log.debug("Attempting to use file caching...");
+        this.fileCache.load();
+        // If we actually got some data, get out
+        if (this.fileCache.loaded){
+            this.log.debug("File caching successful, skipping etcd load.");
+            return;
+        }
+        else if (opts.fileCacheOnly) {
+            this.log.debug("No file cache present, but fileCacheOnly == true," +
+                    " skipping load");
+            return;
+        }
+        else {
+            this.log.debug("No file cache present, loading from etcd...");
+        }
     }
 
     // If we don't have a config, load the existing etcd config
@@ -301,6 +344,11 @@ Config.prototype.load = function load (config, opts) {
         _.forOwn(config, function (value, key) {
             this.set(key, value);
         }, this);
+    }
+
+    // Handle creating a cache for this Config if we are using file caching
+    if (this.fileCache) {
+        this.fileCache.saveCache();
     }
 
     return this.cache;
@@ -405,6 +453,7 @@ Config.prototype.client = function client () {
     // If we've already got a client, just return it
     if (this._client) return this._client;
 
+    this.log.silly("new etcd client");
     this._client = new Etcd(this.hosts, this.sslopts);
     return this._client;
 };
@@ -586,7 +635,7 @@ init = function init (hosts, opts) {
     assert(_.isString(opts.logLevel), "logLevel must be string");
 
     opts.logLevel = process.env.JETCONFIG_LOGLEVEL || opts.logLevel;
-    this.log = new Log();
+    this.log = new Log('jetconfig');
     this.log.level(opts.logLevel);
 
     assert(_.isBoolean(opts.cache), "cache must be boolean");
@@ -616,6 +665,9 @@ init = function init (hosts, opts) {
     opts.hosts = _getEnvHosts(opts.hosts);
 
     opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
+    if (opts.fileCache) {
+        FileCache.checkPermissions(opts.fileCache);
+    }
 
     this.log.debug("new Config", _.assign(_.defaults({}, opts), {
         ssl: opts.ssl ? true : false
@@ -647,23 +699,10 @@ init = function init (hosts, opts) {
     }
     else assert(false, "inherit must be String or Boolean");
 
-    /* TODO: Implement file caching... this probably has to be a lazy load
-     * and replace `.cache` with `.cache()` across the board.
-     *
-     * The file has to work for all prefixes, so it format will be something
-     * like this:
-     *
-     * {
-     *     '/some/prefix': {
-     *         'config.value': 1
-     *     },
-     *     '/some/other/prefix': {
-     *         'other.value': true
-     *     }
-     * }
-     *
-     * This will be useful: https://www.npmjs.com/package/jsonfile
-     */
+    // Initialize the FileCache for this config
+    if (opts.fileCache) {
+        this.fileCache = new FileCache(this, opts.fileCache);
+    }
 };
 
 
@@ -752,3 +791,109 @@ _nice = function (err) {
     return err;
 };
 
+
+/*******************
+ * FileCache methods
+ */
+
+
+/**
+ * Return `true` if *dirname* is readable and writable by this process,
+ * otherwise `false`.
+ *
+ * @param dirname {String} - A directory path
+ */
+FileCache.checkPermissions = function checkPermissions (dirname, filename) {
+    if (dirname === undefined || dirname == 'undefined') {
+        throw new Error("Undefined directory name");
+    }
+    filename = filename || '.jetconfig';
+    try {
+        // Attempt to create the directory if it doesn't exist
+        fs.mkdirsSync(path.resolve(dirname));
+        // If this works, we can assume read/write permissions
+        fs.closeSync(fs.openSync(path.resolve(dirname, filename), 'a+'));
+        return true;
+    }
+    catch (err) {
+        err.message = 'Could not open jetconfig cache: ' + err.message;
+        throw err;
+    }
+};
+
+
+/**
+ * Load the file based cache into the config.
+ */
+FileCache.prototype.load = function load () {
+    var cache = this.loadCache();
+    if (cache === undefined) return;
+
+    // Provide default values in the cache for any missing keys
+    this.conf.cache = _.defaults(this.conf.cache, cache);
+    // Set this so we can refer to it and prevent excessive hits
+    this.loaded = true;
+};
+
+
+/**
+ * Save this cache's config to disk.
+ */
+FileCache.prototype.saveCache = function saveCache () {
+    this.conf.log.info("Saving cache for", this.conf.prefix, "to",
+            this.fileName());
+    try {
+        fs.mkdirsSync(this.dirName());
+        fs.writeJsonSync(this.fileName(), this.conf.cache);
+    }
+    catch (err) {
+        err.message = 'Could not write jetconfig cache: ' + err.message;
+        throw err;
+    }
+};
+
+
+/**
+ * Try to load a disk cache.
+ */
+FileCache.prototype.loadCache = function loadCache () {
+    this.conf.log.info("Loading cache for", this.conf.prefix, "from",
+            this.fileName());
+    var cache;
+    try {
+        cache = fs.readJsonSync(this.fileName());
+    }
+    catch (err) {
+        // If the file doesn't exist, then just return
+        if (err.code === 'ENOENT') return;
+        err.message = 'Could not read jetconfig cache: ' + err.message;
+        throw err;
+    }
+    return cache;
+};
+
+
+/**
+ * Return the filename for the JSON file that this instance is using as its
+ * cache.
+ */
+FileCache.prototype.fileName = function fileName (name) {
+    // Use the prefix if no name is provided
+    name = name || this.conf.prefix;
+    // Strip leading and trailing slashies
+    name = _.trim(name, '/');
+    // Double dots are bad, mkay?
+    name = name.replace('/../', '-');
+    // File extension is always JSON
+    name += '.json';
+    return path.resolve(this.dirname, name);
+};
+
+
+/**
+ * Return the directory including the prefix paths.
+ */
+FileCache.prototype.dirName = function dirName (name) {
+    name = name || this.fileName();
+    return path.dirname(name);
+};
