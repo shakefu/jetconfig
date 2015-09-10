@@ -1,7 +1,7 @@
 /* jshint expr:true */
 var _ = require('lodash');
+var fs = require('fs-extra');
 var pkg = require('../package.json');
-// var Etcd = require('node-etcd');
 var chai = require('chai');
 var expect = chai.expect;
 chai.should();
@@ -16,10 +16,10 @@ before(function (done) {
         console.log("JETCONFIG_ETCD is set... refusing to run tests.");
         process.exit(1);
     }
-    var key = 'jetconfig/test/version';
+    var key = 'test/version';
     // Uncomment to debug connection issues
     // var conf = new Config({logLevel: 'silly'});
-    var conf = new Config();
+    var conf = new Config({prefix: 'jetconfig/'});
     conf.set(key, pkg.version, {ttl: 1});
     conf.get(key).should.equal(pkg.version);
     // This doesn't work with SSL setup...
@@ -730,6 +730,12 @@ describe("Config", function () {
 
 
 describe("FileCache", function () {
+    var conf = new Config({prefix: 'jetconfig/test/filecache'});
+
+    after(function (done) {
+        fs.remove('/tmp/jetconfig', done);
+    });
+
     it("should be able to read and write /tmp", function () {
         var result = FileCache.checkPermissions('/tmp');
         expect(result).to.equal(true);
@@ -745,5 +751,89 @@ describe("FileCache", function () {
         // Not sure what a cross-platform directory that will work here is
         var result = FileCache.checkPermissions('/etc/ssl');
         expect(result).to.equal(false);
+    });
+
+    it("should return a consistent filename", function () {
+        var cache = new FileCache(conf, '/tmp/jetconfig');
+        cache.fileName().should
+            .equal('/tmp/jetconfig/jetconfig/test/filecache.json');
+    });
+
+    it("should return a consistent dirname", function () {
+        var cache = new FileCache(conf, '/tmp/jetconfig');
+        cache.dirName().should.equal('/tmp/jetconfig/jetconfig/test');
+    });
+
+    it("should get created on a config when specified", function () {
+        var config = new Config({
+            fileCache: '/tmp/jetconfig'
+        });
+        config.fileCache.dirname.should.equal('/tmp/jetconfig');
+    });
+
+    it("should return undefined for non-existent cache", function () {
+        var cache = new FileCache(conf, '/tmp/jetconfig');
+        // expect(cache.loadCache.bind(cache)).to.throw();
+        expect(cache.loadCache()).to.be.undefined;
+    });
+
+    describe("saving and loading", function () {
+        var config = new Config({
+            prefix: 'jetconfig/test/filecache/save',
+            fileCache: '/tmp/jetconfig'
+        });
+
+        before(function () {
+            config.load({
+                'test.key': true,
+                'test.value': 'value',
+                'test/name': null,
+            });
+        });
+
+        it("should allow you to save a cache", function () {
+            // If this throws an error it failed
+            config.fileCache.saveCache();
+        });
+
+        it("should load a saved cache", function () {
+            expect(config.fileCache.loadCache()).to.eql({
+                'test.key': true,
+                'test.value': 'value',
+                'test/name': null,
+            });
+        });
+
+        it("should load a save cache into the config", function () {
+            // This relies on the previous tests' having written the cache
+            var cached = new Config({
+                prefix: 'jetconfig/test/filecache/save',
+                fileCache: '/tmp/jetconfig',
+            });
+            cached.load();
+            expect(cached.get('test.key', undefined, {cacheOnly: true}))
+                .to.equal(true);
+            expect(cached.get('test.value', undefined, {cacheOnly: true}))
+                .to.equal('value');
+            expect(cached.get('test/name', undefined, {cacheOnly: true}))
+                .to.equal(null);
+        });
+
+        it("should save and load a config seamlessly", function () {
+            var prefix = 'jetconfig/test/filecache/save_and_load';
+            var cachedir = '/tmp/jetconfig';
+            var conf1 = new Config({
+                prefix: prefix,
+                fileCache: cachedir,
+            });
+            conf1.set('a.value', true);
+            var conf2 = new Config({
+                prefix: prefix,
+                fileCache: cachedir,
+            });
+            conf2.load();
+            expect(conf2.get('a.value', undefined, {cacheOnly: true}))
+                .to.equal(true);
+        });
     });
 });
