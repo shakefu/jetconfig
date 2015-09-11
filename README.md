@@ -97,7 +97,7 @@ The following variables are available:
 * **`JETCONFIG_LOGLEVEL`** - Set the log level for the jetconfig module
   (default: `'critical'`). Must be one of `'silly'`, `'debug'`, `'info'`,
   `'warn'` or `'critical'`.
-* **`JETCONFIG_CACHE`** - Filesystem cache file name used in
+* **`JETCONFIG_CACHE`** - Directory in which to store filesystem cache used in
   lieu of making requests to etcd... not recommend for production deployments
   where you want all your settings to stay up to date all time, but helpful in
   development when you have to restart your process often and the etcd
