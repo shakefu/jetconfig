@@ -785,7 +785,7 @@ _flatten = function(data) {
  * Private helper to make error messages more informative.
  */
 _nice = function (err) {
-    if (err.error.cause) {
+    if (err.error && err.error.cause) {
         err.message = err.error.message + ": " + err.error.cause;
     }
     return err;
