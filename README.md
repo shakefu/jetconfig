@@ -364,6 +364,8 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.3.1** - Bugfix
+
 * **1.3.0** - Adds filesystem caching capabilities.
 
   *Released September 10, 2015.*
