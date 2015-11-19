@@ -6,7 +6,7 @@ var parser = require('nomnom');
 var log_levels = ['silly', 'debug', 'info', 'warn', 'critical'];
 var log_level = 4;
 
-parser.script('jetconfig');
+parser.script(path.basename(process.argv[1]));
 
 parser.option('version', {
         flag: true,
