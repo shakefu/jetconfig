@@ -364,6 +364,11 @@ Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
 
+* **1.3.4** - Fix bug where cacheOnly .get() calls would not return the
+  supplied default value.
+
+  *Released January 8, 2016.*
+
 * **1.3.3** - Update README
 
 * **1.3.1** - Better error handling
