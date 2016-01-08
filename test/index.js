@@ -248,6 +248,19 @@ describe("Config", function () {
             expect(conf.get('test-cache-off')).to.be.undefined;
         });
 
+        it("should return a default even if using cache-only", function () {
+            var cache_conf = new Config();
+            var value = cache_conf.get('test-cache-only-def', 'default',
+                {cacheOnly: true});
+            expect(value).to.equal('default');
+        });
+
+        it("should return undefined if cache-only and no default", function () {
+            var cache_conf = new Config({cacheOnly: true});
+            var value = cache_conf.get('test-cache-only-def');
+            expect(value).to.be.undefined;
+        });
+
         it("should be case insensitive by default", function () {
             conf.set('setCaseSensitive', 'Value');
             conf.clear({cacheOnly: true});
