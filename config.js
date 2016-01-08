@@ -107,11 +107,11 @@ Config.prototype.get = function get (key, def, opts, callback) {
     }
 
     // If we're only using cache, and the value wasn't in cache, then we don't
-    // query etcd and return undefined
+    // query etcd and return the default (which may be undefined)
     if (cacheEnabled && cacheOnly) {
-        this.log.debug('get', '/' + this._k(key), 'undefined',
-                '(skipped, cacheOnly)');
-        return undefined;
+        this.log.debug('get', '/' + this._k(key), def || 'undefined', '(' + 
+                def ? 'default' : 'skipped' + ', cacheOnly)');
+        return def;
     }
 
     assert(callback === undefined || _.isFunction(callback),
