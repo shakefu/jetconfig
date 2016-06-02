@@ -583,6 +583,15 @@ Config.prototype._makeInheritConfig = function _makeInheritConfig (prefix) {
 
 
 /**
+ * Private helper to create a new etcd watcher to keep the in-process cached
+ * configuration synchronized.
+ */
+Config.prototype._createWatcher = function _createWatcher () {
+    throw new Error("Not implemented")
+}
+
+
+/**
  * Private helper for cloning options from an existing Config instance.
  */
 _optsFromConfig = function _optsFromConfig (conf) {
@@ -724,6 +733,7 @@ _getEnvHosts = function _getEnvHosts (hosts) {
     return hosts;
 };
 
+
 /**
  * Private helper for trying to get SSL options out of the environment
  */
@@ -755,7 +765,7 @@ _getEnvSSL = function _getEnvSSL (sslopts) {
 /**
  * Private helper to flatten an object into dot-notation keys
  */
-_flatten = function(data) {
+_flatten = function _flatten (data) {
     var result = {};
     function recurse (cur, prop) {
         if (Object(cur) !== cur) {
