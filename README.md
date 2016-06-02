@@ -365,10 +365,14 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 Return a reference to the underlying *node-etcd* client instance.
 
+### `.close()`
+
+Stop watchers. Does not attempt to close other TCP connections.
+
 ## Changelog
 
 * **1.4.0** - Add watch option and ability to update cached configuration when
-  etcd changes.
+  etcd changes. Also add close() method to ensure watchers are stopped.
 
   *Released TODO*
 
