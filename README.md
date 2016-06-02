@@ -371,6 +371,8 @@ Stop watchers. Does not attempt to close other TCP connections.
 
 ## Changelog
 
+* **1.4.1** - Fix watching non-JSON values causing an error.
+
 * **1.4.0** - Add watch option and ability to update cached configuration when
   etcd changes. Also add close() method to ensure watchers are stopped.
 
