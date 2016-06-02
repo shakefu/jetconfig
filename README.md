@@ -249,6 +249,9 @@ Create a new jetconfig instance.
     inherited configuration key (default: `'config.inherit'`)
   * **`fileCache`** (*String*) - Directory to use for filesystem cache.
     *jetconfig* will attempt to create this directory if it doesn't exist.
+  * **`watch`** (*Boolean*) - Whether to watch for changes to the etcd
+    configuration and update the cached configuration when changes happen
+    (default: `false`) (*New in 1.4.0*)
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
@@ -363,6 +366,11 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 Return a reference to the underlying *node-etcd* client instance.
 
 ## Changelog
+
+* **1.4.0** - Add watch option and ability to update cached configuration when
+  etcd changes.
+
+  *Released TODO*
 
 * **1.3.7** - Fix bug where cacheOnly .get() calls would not return the
   supplied default value.
