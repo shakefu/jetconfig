@@ -374,7 +374,10 @@ Stop watchers. Does not attempt to close other TCP connections.
 * **1.4.0** - Add watch option and ability to update cached configuration when
   etcd changes. Also add close() method to ensure watchers are stopped.
 
-  *Released TODO*
+  Going forward this repository will also use `npm version` tags, which include
+  the leading `v` in the tag on GitHub.
+
+  *Released June 2, 2016.*
 
 * **1.3.7** - Fix bug where cacheOnly .get() calls would not return the
   supplied default value.
