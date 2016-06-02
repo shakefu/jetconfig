@@ -674,7 +674,14 @@ Config.prototype._createWatcher = function _createWatcher () {
         // Handle set action, when a value is changed
         if (change.action === 'set') {
             key = this._strip(change.node.key);
-            val = JSON.parse(change.node.value);
+
+            val = change.node.value;
+            try {
+                val = JSON.parse(val);
+            }
+            catch (err) {
+                // Ignore unparsed JSON
+            }
             this.cache[key] = val;
             return;
         }
