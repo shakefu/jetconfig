@@ -556,6 +556,17 @@ describe("Config", function () {
             }, 20); // 20ms seems like a safe bet
         });
 
+
+        it("should work with non-JSON values", function (done) {
+            var conf = new Config({prefix: 'jetconfig/test/watch'});
+            conf.set('some.string', 'foo');
+            setTimeout(function () {
+                watching.get('some.string', {cacheOnly: true})
+                    .should.equal('foo');
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
         it("should not clear if allowClear is not true", function (done) {
             var conf = new Config({
                 prefix: 'jetconfig/test/watch',
