@@ -50,6 +50,9 @@ after(function () {
 
 
 describe("Config", function () {
+    // Sometimes Travis CI is a bit slow, so we up the timeout here to ensure
+    // it has enough time to do its thing
+    this.timeout(5000);
     describe("new", function () {
         var host1 = '127.0.0.1:4001';
         var host2 = '127.0.0.1:2379';
