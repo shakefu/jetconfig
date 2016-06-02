@@ -535,6 +535,7 @@ describe("Config", function () {
         var watching = new Config({
             prefix: 'jetconfig/test/watch',
             watch: true,
+            allowClear: false,
         });
 
         beforeEach(function () {
@@ -555,7 +556,7 @@ describe("Config", function () {
             }, 20); // 20ms seems like a safe bet
         });
 
-        it("should update cache when things are cleared", function (done) {
+        it("should not clear if allowClear is not true", function (done) {
             var conf = new Config({
                 prefix: 'jetconfig/test/watch',
                 allowClear: true,
@@ -563,7 +564,7 @@ describe("Config", function () {
             conf.clear();
             setTimeout(function () {
                 watching.get('foo.bar', 'UNSET', {cacheOnly: true})
-                    .should.equal('UNSET');
+                    .should.equal(false);
                 done();
             }, 20); // 20ms seems like a safe bet
         });
@@ -579,6 +580,27 @@ describe("Config", function () {
                     .should.equal('UNSET');
                 watching.get('foo.yoo', 'UNSET', {cacheOnly: true})
                     .should.equal(true);
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should remove the cache if clearing is allowed", function (done) {
+            var watched = new Config({
+                prefix: 'jetconfig/test/watch',
+                watch: true,
+                allowClear: true,
+            });
+
+            var conf = new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+
+            conf.clear();
+
+            setTimeout(function () {
+                watched.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal('UNSET');
                 done();
             }, 20); // 20ms seems like a safe bet
         });
