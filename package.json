@@ -4,7 +4,8 @@
   "description": "etcd based configuration for node.js",
   "main": "index.js",
   "scripts": {
-    "test": "jshint --verbose *.js test/*.js && mocha test/index.js"
+    "test": "jshint --verbose *.js test/*.js && mocha test/index.js",
+    "watch": "watch 'npm test' -du"
   },
   "bin": {
     "jetconfig": "./cli.js"
