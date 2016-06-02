@@ -651,7 +651,6 @@ Config.prototype._createWatcher = function _createWatcher () {
         var key;
         var val;
 
-        // TODO: Remove this
         this.log.silly("watched change:", change);
 
         // Handle missing action (shouldn't happen)
