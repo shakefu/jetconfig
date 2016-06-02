@@ -50,6 +50,9 @@ after(function () {
 
 
 describe("Config", function () {
+    // Sometimes Travis CI is a bit slow, so we up the timeout here to ensure
+    // it has enough time to do its thing
+    this.timeout(5000);
     describe("new", function () {
         var host1 = '127.0.0.1:4001';
         var host2 = '127.0.0.1:2379';
@@ -127,6 +130,11 @@ describe("Config", function () {
         it("should require caseSensitive option to be boolean", function () {
             expect(function () { new Config({caseSensitive: 'foo'}); }) // jshint ignore:line
                 .to.throw("caseSensitive must be boolean");
+        });
+
+        it("should require watch option to be boolean", function () {
+            expect(function () { new Config({watch: 'foo'}); }) // jshint ignore:line
+                .to.throw("watch must be boolean");
         });
     });
 
@@ -520,6 +528,81 @@ describe("Config", function () {
                 conf.log.level('debug');
                 // conf.log.debug("Testing");
             });
+        });
+    });
+
+    describe('watching', function () {
+        var watching = new Config({
+            prefix: 'jetconfig/test/watch',
+            watch: true,
+            allowClear: false,
+        });
+
+        beforeEach(function () {
+            watching.set('foo.bar', false);
+            watching.set('foo.yoo', true);
+        });
+
+        after(function () {
+            watching.close();
+        });
+
+        it("should update cache from the set event", function (done) {
+            var conf = new Config({prefix: 'jetconfig/test/watch'});
+            conf.set('foo.bar', true);
+            setTimeout(function () {
+                watching.get('foo.bar', {cacheOnly: true}).should.equal(true);
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should not clear if allowClear is not true", function (done) {
+            var conf = new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+            conf.clear();
+            setTimeout(function () {
+                watching.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal(false);
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should update cache when a key is deleted", function (done) {
+            var conf = new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+            conf.client().delSync('/jetconfig/test/watch/foo.bar');
+            setTimeout(function () {
+                watching.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal('UNSET');
+                watching.get('foo.yoo', 'UNSET', {cacheOnly: true})
+                    .should.equal(true);
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should remove the cache if clearing is allowed", function (done) {
+            var watched = new Config({
+                prefix: 'jetconfig/test/watch',
+                watch: true,
+                allowClear: true,
+            });
+
+            var conf = new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+
+            conf.clear();
+
+            setTimeout(function () {
+                watched.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal('UNSET');
+                done();
+            }, 20); // 20ms seems like a safe bet
         });
     });
 

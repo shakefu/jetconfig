@@ -109,7 +109,7 @@ Config.prototype.get = function get (key, def, opts, callback) {
     // If we're only using cache, and the value wasn't in cache, then we don't
     // query etcd and return the default (which may be undefined)
     if (cacheEnabled && cacheOnly) {
-        this.log.debug('get', '/' + this._k(key), def || 'undefined', '(' + 
+        this.log.debug('get', '/' + this._k(key), def || 'undefined', '(' +
                 def ? 'default' : 'skipped' + ', cacheOnly)');
         return def;
     }
@@ -331,7 +331,7 @@ Config.prototype.load = function load (config, opts) {
 
     config = _.mapKeys(config, function (value, key) {
         return this._k(key, false);
-    }, this);
+    }.bind(this));
 
     // If we're not merging, clear the cache first
     if (opts.merge === false) this.cache = {};
@@ -343,7 +343,7 @@ Config.prototype.load = function load (config, opts) {
     if (opts.cacheOnly === false) {
         _.forOwn(config, function (value, key) {
             this.set(key, value);
-        }, this);
+        }.bind(this));
     }
 
     // Handle creating a cache for this Config if we are using file caching
@@ -460,11 +460,56 @@ Config.prototype.client = function client () {
 
 
 /**
+ * Closes open client connections.
+ */
+Config.prototype.close = function close () {
+    if (this._client) {
+        this.log.silly("Closing client, but not really...");
+    }
+    if (this._watcher) {
+        this.log.silly("Stopping watcher...");
+        this._watcher.stop();
+    }
+};
+
+
+/**
  * Private helper for controlling key names
  */
 Config.prototype._k = function _k (key, pre) {
     if (pre !== false) key = this.prefix + key;
     if (!this.caseSensitive) key = key.toLowerCase();
+    return key;
+};
+
+
+/**
+ * Private helper for turning etcd key names into cache key names
+ */
+Config.prototype._strip = function _K (key) {
+    // We're going to normalize the prefix a bit
+    if (!this.caseSensitive) {
+        key = key.toLowerCase();
+    }
+
+    // Trim leading slashies
+    key = _.trimStart(key, '/');
+
+    // Check if a parent directory of our key was changed or deleted
+    if (_.startsWith(this.prefix, key)) {
+        this.log.silly("Matched parent:", key, ">", this.prefix);
+        return '/';
+    }
+
+    // Ensure the prefix actually matches so we don't get gibberish
+    if (!_.startsWith(key, this.prefix)) {
+        this.log.warn("Unmatched key:", key, "vs", this.prefix);
+        return key;
+    }
+
+    // Strip off the matching prefix
+    key = key.substring(this.prefix.length);
+
     return key;
 };
 
@@ -583,6 +628,82 @@ Config.prototype._makeInheritConfig = function _makeInheritConfig (prefix) {
 
 
 /**
+ * Private helper to create a new etcd watcher to keep the in-process cached
+ * configuration synchronized.
+ */
+Config.prototype._createWatcher = function _createWatcher () {
+    var handler;
+
+    if (!this.cacheEnabled) {
+        this.log.warn("Cache not enabled, skipping watch...");
+        return;
+    }
+
+    this.log.silly("Creating watcher...");
+
+    // Multiple watchers could be bad, so we don't allow it
+    if (this._watcher) {
+        this.log.warn("Already watching.");
+        return;
+    }
+
+    handler = function watcherOnChange (change) {
+        var key;
+        var val;
+
+        this.log.silly("watched change:", change);
+
+        // Handle missing action (shouldn't happen)
+        if (!change.action) {
+            this.log.warn("etcd missing action:", change);
+            return;
+        }
+
+        // Handle missing node (shouldn't happen)
+        if (!change.node) {
+            this.log.warn("etcd missing node:", change);
+            return;
+        }
+
+        // Handle missing key
+        if (!change.node.key) {
+            this.log.warn("etcd missing key:", change);
+            return;
+        }
+
+        // Handle set action, when a value is changed
+        if (change.action === 'set') {
+            key = this._strip(change.node.key);
+            val = JSON.parse(change.node.value);
+            this.cache[key] = val;
+            return;
+        }
+
+        if (change.action === 'delete') {
+            key = this._strip(change.node.key);
+
+            // Check if everything was cleared
+            if (key === '/' && this.allowClear) {
+                // Blow away the cache
+                console.log("Removing cache from change event.");
+                this.cache = {};
+                return;
+            }
+
+            // Delete the cache key
+            delete this.cache[key];
+            return;
+        }
+
+        this.log.warn("Unhandled change", change);
+    };
+
+    this._watcher = this.client().watcher(this.prefix, null, {recursive: true});
+    this._watcher.on('change', handler.bind(this));
+};
+
+
+/**
  * Private helper for cloning options from an existing Config instance.
  */
 _optsFromConfig = function _optsFromConfig (conf) {
@@ -621,6 +742,7 @@ init = function init (hosts, opts) {
         inheritDepth: 2,
         hosts: '127.0.0.1:2379',
         fileCache: false,
+        watch: false,
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -643,12 +765,15 @@ init = function init (hosts, opts) {
     assert(_.isString(opts.inheritKey), "inheritKey must be string");
     assert(_.isNumber(opts.inheritDepth) && opts.inheritDepth >= 0,
             "inheritDepth must be an integer greater than or equal to 0");
+    assert(_.isBoolean(opts.watch), "watch must be boolean");
 
     // Ensure prefix is a string without extra whitspace and ends with a slash
     assert(_.isString(opts.prefix), "prefix must be string");
     opts.prefix = _.trim(opts.prefix);
     opts.prefix = _.trim(opts.prefix, '/');
     opts.prefix += '/';
+
+    if (!opts.caseSensitive) opts.prefix = opts.prefix.toLowerCase();
 
     // Ensure that the sslopts has the correct format
     if (opts.ssl) {
@@ -679,6 +804,7 @@ init = function init (hosts, opts) {
     this.sslopts = opts.ssl;
     this.hosts = opts.hosts;
     this.allowClear = opts.allowClear;
+    this.watch = opts.watch;
 
     this.inheritKey = opts.inheritKey;
     this.inheritDepth = opts.inheritDepth;
@@ -703,6 +829,11 @@ init = function init (hosts, opts) {
     if (opts.fileCache) {
         this.fileCache = new FileCache(this, opts.fileCache);
     }
+
+    // Inititalize etcd watcher
+    if (this.watch) {
+        this._createWatcher();
+    }
 };
 
 
@@ -721,6 +852,7 @@ _getEnvHosts = function _getEnvHosts (hosts) {
     hosts = _.map(hosts, _.trim);
     return hosts;
 };
+
 
 /**
  * Private helper for trying to get SSL options out of the environment
@@ -751,9 +883,9 @@ _getEnvSSL = function _getEnvSSL (sslopts) {
 
 
 /**
- * Flatten an object into dot-notation keys
+ * Private helper to flatten an object into dot-notation keys
  */
-_flatten = function(data) {
+_flatten = function _flatten (data) {
     var result = {};
     function recurse (cur, prop) {
         if (Object(cur) !== cur) {
