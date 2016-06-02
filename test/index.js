@@ -131,6 +131,11 @@ describe("Config", function () {
             expect(function () { new Config({caseSensitive: 'foo'}); }) // jshint ignore:line
                 .to.throw("caseSensitive must be boolean");
         });
+
+        it("should require watch option to be boolean", function () {
+            expect(function () { new Config({watch: 'foo'}); }) // jshint ignore:line
+                .to.throw("watch must be boolean");
+        });
     });
 
     describe('#get()', function (){
@@ -523,6 +528,43 @@ describe("Config", function () {
                 conf.log.level('debug');
                 // conf.log.debug("Testing");
             });
+        });
+    });
+
+    describe('watching', function () {
+        var watching = new Config({
+            prefix: 'jetconfig/test/watch',
+            watch: true,
+        });
+
+        before(function () {
+            watching.set('foo.bar', false);
+        });
+
+        after(function () {
+            watching.close();
+        });
+
+        it("should update cache from the set event", function (done) {
+            var conf =  new Config({prefix: 'jetconfig/test/watch'});
+            conf.set('foo.bar', true);
+            setTimeout(function () {
+                watching.get('foo.bar', {cacheOnly: true}).should.equal(true);
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should update cache when things are removed", function (done) {
+            var conf =  new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+            conf.clear();
+            setTimeout(function () {
+                watching.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal('UNSET');
+                done();
+            }, 20); // 20ms seems like a safe bet
         });
     });
 
