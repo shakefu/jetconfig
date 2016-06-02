@@ -621,6 +621,7 @@ init = function init (hosts, opts) {
         inheritDepth: 2,
         hosts: '127.0.0.1:2379',
         fileCache: false,
+        watch: false,
     };
     if (_.isPlainObject(hosts)) {
         opts = hosts;
@@ -643,6 +644,7 @@ init = function init (hosts, opts) {
     assert(_.isString(opts.inheritKey), "inheritKey must be string");
     assert(_.isNumber(opts.inheritDepth) && opts.inheritDepth >= 0,
             "inheritDepth must be an integer greater than or equal to 0");
+    assert(_.isBoolean(opts.watch), "watch must be boolean");
 
     // Ensure prefix is a string without extra whitspace and ends with a slash
     assert(_.isString(opts.prefix), "prefix must be string");
@@ -751,7 +753,7 @@ _getEnvSSL = function _getEnvSSL (sslopts) {
 
 
 /**
- * Flatten an object into dot-notation keys
+ * Private helper to flatten an object into dot-notation keys
  */
 _flatten = function(data) {
     var result = {};
