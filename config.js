@@ -683,7 +683,7 @@ Config.prototype._createWatcher = function _createWatcher () {
             key = this._strip(change.node.key);
 
             // Check if everything was cleared
-            if (key === '/') {
+            if (key === '/' && this.allowClear) {
                 // Blow away the cache
                 console.log("Removing cache from change event.");
                 this.cache = {};
