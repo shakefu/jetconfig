@@ -537,8 +537,9 @@ describe("Config", function () {
             watch: true,
         });
 
-        before(function () {
+        beforeEach(function () {
             watching.set('foo.bar', false);
+            watching.set('foo.yoo', true);
         });
 
         after(function () {
@@ -546,7 +547,7 @@ describe("Config", function () {
         });
 
         it("should update cache from the set event", function (done) {
-            var conf =  new Config({prefix: 'jetconfig/test/watch'});
+            var conf = new Config({prefix: 'jetconfig/test/watch'});
             conf.set('foo.bar', true);
             setTimeout(function () {
                 watching.get('foo.bar', {cacheOnly: true}).should.equal(true);
@@ -554,8 +555,8 @@ describe("Config", function () {
             }, 20); // 20ms seems like a safe bet
         });
 
-        it("should update cache when things are removed", function (done) {
-            var conf =  new Config({
+        it("should update cache when things are cleared", function (done) {
+            var conf = new Config({
                 prefix: 'jetconfig/test/watch',
                 allowClear: true,
             });
@@ -563,6 +564,21 @@ describe("Config", function () {
             setTimeout(function () {
                 watching.get('foo.bar', 'UNSET', {cacheOnly: true})
                     .should.equal('UNSET');
+                done();
+            }, 20); // 20ms seems like a safe bet
+        });
+
+        it("should update cache when a key is deleted", function (done) {
+            var conf = new Config({
+                prefix: 'jetconfig/test/watch',
+                allowClear: true,
+            });
+            conf.client().delSync('/jetconfig/test/watch/foo.bar');
+            setTimeout(function () {
+                watching.get('foo.bar', 'UNSET', {cacheOnly: true})
+                    .should.equal('UNSET');
+                watching.get('foo.yoo', 'UNSET', {cacheOnly: true})
+                    .should.equal(true);
                 done();
             }, 20); // 20ms seems like a safe bet
         });
