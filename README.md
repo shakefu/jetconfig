@@ -251,7 +251,7 @@ Create a new jetconfig instance.
     *jetconfig* will attempt to create this directory if it doesn't exist.
   * **`watch`** (*Boolean*) - Whether to watch for changes to the etcd
     configuration and update the cached configuration when changes happen
-    (default: `false`) (*New in 1.4.0*)
+    (default: `false`) *New in 1.4.0.*
 
 ### `.get(key, `*`[def], [options], [callback]`*`)`
 
