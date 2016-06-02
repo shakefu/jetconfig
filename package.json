@@ -33,6 +33,7 @@
   "homepage": "https://github.com/shakefu/jetconfig#readme",
   "devDependencies": {
     "chai": "^3.2.0",
+    "jshint": "^2.9.2",
     "mocha": "^2.2.5",
     "watch": "^0.18.0"
   },
