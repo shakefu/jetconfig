@@ -76,7 +76,13 @@ parser.command('clear')
         help: 'Etcd namespace',
         required: true
     })
-    .callback(cmd(function (conf) {
+    .option('extra', {
+        position: 2,
+        help: 'Don\'t forget to include a / between env and key',
+        required: false,
+    })
+    .callback(cmd(function (conf, params) {
+        if (params.extra) return {error: "You forgot a slash didn't you?"};
         conf.allowClear = true;
         conf.clear();
     }));
