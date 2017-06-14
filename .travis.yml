@@ -7,7 +7,11 @@ node_js:
   - "5"
   - "6"
   - "7"
+  - "8"
 env:
+  - >
+    INSTALL_ETCD=3.2.0
+    _ETCD="./etcd"
   - >
     INSTALL_ETCD=2.1.1
     _ETCD="./etcd"
