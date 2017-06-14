@@ -58,7 +58,7 @@ describe("Config", function () {
         var host2 = '127.0.0.1:2379';
 
         it("should be required", function () {
-            expect(Config).to.throw("AssertionError: Missing 'new' keyword");
+            expect(Config).to.throw(/Missing 'new' keyword/);
         });
 
         it("should provide a default host", function () {
@@ -89,12 +89,12 @@ describe("Config", function () {
 
         it("should throw for other data types", function () {
             expect(function (){ new Config(1) }).to.throw( // jshint ignore:line
-                "AssertionError: hosts must be string or array");
+                /hosts must be string or array/);
         });
 
         it("should throw if host in array isnt string",  function () {
             expect(function (){ new Config([1]); }) // jshint ignore:line
-                .to.throw("AssertionError: host must be string");
+                .to.throw(/host must be string/);
         });
 
         it("should allow for multiple hosts separated by comma", function () {
