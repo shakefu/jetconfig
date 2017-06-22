@@ -7,12 +7,15 @@ node_js:
   - "8"
 env:
   - >
+    CXX=g++-4.8
     INSTALL_ETCD=3.2.0
     _ETCD="./etcd"
   - >
+    CXX=g++-4.8
     INSTALL_ETCD=2.3.7
     _ETCD="./etcd"
   - >
+    CXX=g++-4.8
     INSTALL_ETCD=2.3.7
     _SSL="`pwd`/test/ssl"
     _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
@@ -20,6 +23,7 @@ env:
     JETCONFIG_SSL_CERT="${_SSL}/client.crt"
     JETCONFIG_SSL_KEY="${_SSL}/client.key"
   - >
+    CXX=g++-4.8
     INSTALL_ETCD=2.3.7
     _SSL="`pwd`/test/ssl"
     _ETCD="./etcd -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
@@ -34,5 +38,9 @@ before_script:
   - sleep 3 # Give etcd startup time
   # - curl -v --cacert ${JETCONFIG_SSL_CA} --cert ${JETCONFIG_SSL_CERT} --key ${JETCONFIG_SSL_KEY} https://127.0.0.1:2379/v2/keys
   # - curl -v --cacert ${JETCONFIG_SSL_CA} https://127.0.0.1:2379/v2/keys
-
-
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
