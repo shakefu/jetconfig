@@ -848,7 +848,7 @@ init = function init (hosts, opts) {
  */
 Config.prototype._getEnvHosts = function _getEnvHosts (hosts) {
     var schema = 'http://';
-    var match = /^http/;
+    var prefix = /^https?:\/\//;
 
     // Switch schema if we have SSL settings at all
     if (this.sslopts && (this.sslopts.ca || this.sslopts.key ||
@@ -864,7 +864,7 @@ Config.prototype._getEnvHosts = function _getEnvHosts (hosts) {
 
     hosts = _.map(hosts, _.trim);
     hosts = _.map(hosts, function (host) {
-        if (!host.test(match)) {
+        if (!host.match(prefix)) {
             // TODO: Remove this
             console.log("Host missing schema", host);
             return schema + host;
