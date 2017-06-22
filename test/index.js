@@ -19,9 +19,16 @@ before(function (done) {
     var key = 'test/version';
     // Uncomment to debug connection issues
     // var conf = new Config({logLevel: 'silly'});
-    var conf = new Config({prefix: 'jetconfig/'});
-    conf.set(key, pkg.version, {ttl: 1});
-    conf.get(key).should.equal(pkg.version);
+    try {
+        var conf = new Config({prefix: 'jetconfig/'});
+        conf.set(key, pkg.version, {ttl: 1});
+        conf.get(key).should.equal(pkg.version);
+    }
+    catch (err) {
+        // TODO: Remove this
+        console.log(require('util').inspect(err, true, 10));
+        throw err;
+    }
     // This doesn't work with SSL setup...
     /*
     var etcd = new Etcd();
