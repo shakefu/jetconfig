@@ -793,7 +793,7 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
-    opts.hosts = this._getEnvHosts(opts.hosts);
+    opts.hosts = this._getEnvHosts(opts.hosts, opts.ssl);
 
     opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
     if (opts.fileCache) {
@@ -846,13 +846,12 @@ init = function init (hosts, opts) {
 /**
  * Private helper for parsing the host options for the Config object.
  */
-Config.prototype._getEnvHosts = function _getEnvHosts (hosts) {
+Config.prototype._getEnvHosts = function _getEnvHosts (hosts, ssl) {
     var schema = 'http://';
     var prefix = /^https?:\/\//;
 
     // Switch schema if we have SSL settings at all
-    if (this.sslopts && (this.sslopts.ca || this.sslopts.key ||
-        this.sslopts.cert)) schema = 'https://';
+    if (ssl && (ssl.ca || ssl.key || ssl.cert)) schema = 'https://';
 
     hosts = process.env.JETCONFIG_ETCD || hosts;
 
