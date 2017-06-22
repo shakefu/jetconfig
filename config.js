@@ -454,7 +454,7 @@ Config.prototype.client = function client () {
     if (this._client) return this._client;
 
     this.log.silly("new etcd client");
-    console.log(this.hosts, this.sslopts);
+    // console.log(this.hosts, this.sslopts);
     this._client = new Etcd(this.hosts, this.sslopts);
     return this._client;
 };
