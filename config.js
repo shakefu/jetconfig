@@ -735,7 +735,6 @@ _optsFromConfig = function _optsFromConfig (conf) {
  * @param hosts {String|Object} - Etcd hosts
  * @param opts {Object} - Config options
  */
-var _getEnvHosts; // _getEnvHosts(hosts)
 var _getEnvSSL; // _getEnvSSL(sslopts)
 init = function init (hosts, opts) {
     var defaults = {
@@ -794,7 +793,7 @@ init = function init (hosts, opts) {
         this.cache = {};
     }
 
-    opts.hosts = _getEnvHosts(opts.hosts);
+    opts.hosts = this._getEnvHosts(opts.hosts);
 
     opts.fileCache = process.env.JETCONFIG_CACHE || opts.fileCache;
     if (opts.fileCache) {
@@ -847,7 +846,14 @@ init = function init (hosts, opts) {
 /**
  * Private helper for parsing the host options for the Config object.
  */
-_getEnvHosts = function _getEnvHosts (hosts) {
+Config.prototype._getEnvHosts = function _getEnvHosts (hosts) {
+    var schema = 'http://';
+    var match = /^http/;
+
+    // Switch schema if we have SSL settings at all
+    if (this.sslopts && (this.sslopts.ca || this.sslopts.key ||
+        this.sslopts.cert)) schema = 'https://';
+
     hosts = process.env.JETCONFIG_ETCD || hosts;
 
     if (hosts === undefined) hosts = ['127.0.0.1:2379'];
@@ -857,6 +863,15 @@ _getEnvHosts = function _getEnvHosts (hosts) {
     assert(_.reduce(_.map(hosts, _.isString)), "host must be string");
 
     hosts = _.map(hosts, _.trim);
+    hosts = _.map(hosts, function (host) {
+        if (!host.test(match)) {
+            // TODO: Remove this
+            console.log("Host missing schema", host);
+            return schema + host;
+        }
+        return host;
+    });
+
     return hosts;
 };
 
