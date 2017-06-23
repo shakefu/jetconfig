@@ -71,28 +71,34 @@ describe("Config", function () {
 
         it("should provide a default host", function () {
             var conf = new Config();
-            conf.hosts.should.eql([host2]);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host2));
+            // conf.hosts.should.eql([host2]);
         });
 
         it("should allow for env-based hosts", function () {
             // Save the env for later
             var env = process.env.JETCONFIG_ETCD;
-            process.env.JETCONFIG_ETCD = host2;
+            process.env.JETCONFIG_ETCD = host1;
             var conf = new Config();
-            conf.hosts.should.eql([host2]);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host1));
             // Restore the env
             if (env === undefined) delete process.env.JETCONFIG_ETCD;
             else process.env.JETCONFIG_ETCD = env;
         });
 
         it("should allow for a single string host", function () {
-            var conf = new Config(host2);
-            conf.hosts.should.eql([host2]);
+            var conf = new Config(host1);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host1));
         });
 
         it("should allow for array hosts", function () {
             var conf = new Config([host1, host2]);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should throw for other data types", function () {
@@ -107,12 +113,16 @@ describe("Config", function () {
 
         it("should allow for multiple hosts separated by comma", function () {
             var conf = new Config(host1 + ',' + host2);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should trim comma separated hosts", function () {
             var conf = new Config(host1 + ', ' + host2);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should trim prefixes", function () {
