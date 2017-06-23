@@ -863,11 +863,9 @@ Config.prototype._getEnvHosts = function _getEnvHosts (hosts, ssl) {
 
     hosts = _.map(hosts, _.trim);
     hosts = _.map(hosts, function (host) {
-        if (!host.match(prefix)) {
-            // TODO: Remove this
-            console.log("Host missing schema", host);
-            return schema + host;
-        }
+        // If we don't have a prefix, forcefully add one
+        if (!host.match(prefix)) return schema + host;
+        // Otherwise return the host unmodified
         return host;
     });
 
