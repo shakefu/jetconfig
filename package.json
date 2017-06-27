@@ -4,7 +4,7 @@
   "description": "etcd based configuration for node.js",
   "main": "index.js",
   "scripts": {
-    "test": "jshint --verbose *.js test/*.js && mocha test/index.js",
+    "test": "jshint --verbose *.js test/*.js && mocha --timeout 15000 test/index.js",
     "watch": "watch 'npm test' -du"
   },
   "bin": {
@@ -40,7 +40,7 @@
   "dependencies": {
     "fs-extra": "^0.24.0",
     "lodash": "^4.0.0",
-    "node-etcd": "^4.1.0",
+    "node-etcd": "^5.1.0",
     "nomnom": "^1.8.1"
   }
 }

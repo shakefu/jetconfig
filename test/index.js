@@ -16,12 +16,20 @@ before(function (done) {
         console.log("JETCONFIG_ETCD is set... refusing to run tests.");
         process.exit(1);
     }
+
     var key = 'test/version';
     // Uncomment to debug connection issues
     // var conf = new Config({logLevel: 'silly'});
-    var conf = new Config({prefix: 'jetconfig/'});
-    conf.set(key, pkg.version, {ttl: 1});
-    conf.get(key).should.equal(pkg.version);
+    try {
+        var conf = new Config({prefix: 'jetconfig/'});
+        conf.set(key, pkg.version, {ttl: 1});
+        conf.get(key).should.equal(pkg.version);
+    }
+    catch (err) {
+        // TODO: Remove this
+        console.log(require('util').inspect(err, true, 10));
+        throw err;
+    }
     // This doesn't work with SSL setup...
     /*
     var etcd = new Etcd();
@@ -58,53 +66,63 @@ describe("Config", function () {
         var host2 = '127.0.0.1:2379';
 
         it("should be required", function () {
-            expect(Config).to.throw("AssertionError: Missing 'new' keyword");
+            expect(Config).to.throw(/Missing 'new' keyword/);
         });
 
         it("should provide a default host", function () {
             var conf = new Config();
-            conf.hosts.should.eql([host2]);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host2));
+            // conf.hosts.should.eql([host2]);
         });
 
         it("should allow for env-based hosts", function () {
             // Save the env for later
             var env = process.env.JETCONFIG_ETCD;
-            process.env.JETCONFIG_ETCD = host2;
+            process.env.JETCONFIG_ETCD = host1;
             var conf = new Config();
-            conf.hosts.should.eql([host2]);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host1));
             // Restore the env
             if (env === undefined) delete process.env.JETCONFIG_ETCD;
             else process.env.JETCONFIG_ETCD = env;
         });
 
         it("should allow for a single string host", function () {
-            var conf = new Config(host2);
-            conf.hosts.should.eql([host2]);
+            var conf = new Config(host1);
+            conf.hosts.should.have.length(1);
+            conf.hosts[0].should.match(new RegExp(host1));
         });
 
         it("should allow for array hosts", function () {
             var conf = new Config([host1, host2]);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should throw for other data types", function () {
             expect(function (){ new Config(1) }).to.throw( // jshint ignore:line
-                "AssertionError: hosts must be string or array");
+                /hosts must be string or array/);
         });
 
         it("should throw if host in array isnt string",  function () {
             expect(function (){ new Config([1]); }) // jshint ignore:line
-                .to.throw("AssertionError: host must be string");
+                .to.throw(/host must be string/);
         });
 
         it("should allow for multiple hosts separated by comma", function () {
             var conf = new Config(host1 + ',' + host2);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should trim comma separated hosts", function () {
             var conf = new Config(host1 + ', ' + host2);
-            conf.hosts.should.eql([host1, host2]);
+            conf.hosts.should.have.length(2);
+            conf.hosts[0].should.match(new RegExp(host1));
+            conf.hosts[1].should.match(new RegExp(host2));
         });
 
         it("should trim prefixes", function () {
