@@ -87,11 +87,13 @@ Config.prototype.get = function get (key, def, opts, callback) {
 
     // Check whether we're only using the cache
     if (opts && opts.cacheOnly === true) {
+        delete opts.cacheOnly;
         cacheOnly = true;
     }
 
     // Check whether we're allowing inheritance for this get
     if (opts && opts.allowInherited === false) {
+        delete opts.allowInherited;
         allowInherited = false;
     }
 
