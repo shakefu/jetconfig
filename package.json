@@ -40,7 +40,7 @@
   "dependencies": {
     "fs-extra": "^0.24.0",
     "lodash": "^4.0.0",
-    "node-etcd": "^5.1.0",
+    "node-etcd": "^6.0.2",
     "nomnom": "^1.8.1"
   }
 }
