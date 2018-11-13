@@ -7,15 +7,15 @@ node_js:
 env:
   - >
     CXX=g++-4.8
-    INSTALL_ETCD=3.2.0
+    INSTALL_ETCD=3.3.11
     _ETCD="./etcd"
   - >
     CXX=g++-4.8
-    INSTALL_ETCD=2.3.7
+    INSTALL_ETCD=2.3.8
     _ETCD="./etcd"
   - >
     CXX=g++-4.8
-    INSTALL_ETCD=2.3.7
+    INSTALL_ETCD=2.3.8
     _SSL="`pwd`/test/ssl"
     _ETCD="./etcd -client-cert-auth -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
     JETCONFIG_SSL_CA="${_SSL}/cacert.pem"
@@ -23,7 +23,7 @@ env:
     JETCONFIG_SSL_KEY="${_SSL}/client.key"
   - >
     CXX=g++-4.8
-    INSTALL_ETCD=2.3.7
+    INSTALL_ETCD=2.3.8
     _SSL="`pwd`/test/ssl"
     _ETCD="./etcd -trusted-ca-file=${_SSL}/cacert.pem -cert-file=${_SSL}/server.crt -key-file=${_SSL}/server.key -advertise-client-urls https://127.0.0.1:2379 -listen-client-urls https://127.0.0.1:2379"
     JETCONFIG_SSL_CA="${_SSL}/cacert.pem"
