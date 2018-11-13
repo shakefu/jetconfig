@@ -7,7 +7,7 @@ node_js:
 env:
   - >
     CXX=g++-4.8
-    INSTALL_ETCD=3.3.11
+    INSTALL_ETCD=3.3.10
     _ETCD="./etcd"
   - >
     CXX=g++-4.8
