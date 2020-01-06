@@ -54,6 +54,8 @@ after(function () {
     catch (err) {
         conf.log.warn("Error clearing test configs", err);
     }
+
+    conf.close();
 });
 
 
