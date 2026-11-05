@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # The tests talk to a live etcd over the v2 HTTP API, which etcd 3.5
+      # still serves.
+      - name: Install etcd 3.5
+        run: |
+          curl -sL \
+            https://github.com/etcd-io/etcd/releases/download/v3.5.35/etcd-v3.5.35-linux-amd64.tar.gz \
+            -o etcd.tar.gz
+          tar xzf etcd.tar.gz
+          sudo install etcd-v3.5.35-linux-amd64/etcd /usr/local/bin/etcd
+          etcd --version
+
+      - name: Start etcd
+        run: |
+          etcd --data-dir /tmp/jetconfig-etcd --enable-v2=true \
+            --listen-client-urls http://127.0.0.1:2379 \
+            --advertise-client-urls http://127.0.0.1:2379 \
+            > /tmp/etcd.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:2379/version && break
+            sleep 1
+          done
+          curl -s http://127.0.0.1:2379/version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
