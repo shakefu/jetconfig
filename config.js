@@ -7,7 +7,7 @@ var fs = require('fs-extra');
 var path = require('path');
 var assert = require('assert');
 var Log = require('./log');
-var Etcd = require('node-etcd');
+var Etcd = require('./etcd3-client');
 
 
 /**

@@ -62,6 +62,9 @@
       "it": true,
       "before": true,
       "beforeEach": true,
-      "after": true
+      "after": true,
+      "Promise": true,
+      "Atomics": true,
+      "SharedArrayBuffer": true
   }
 }
