@@ -30,6 +30,12 @@ $ npm install --save jetconfig
 Make sure you have [etcd](http://coreos.com/docs/etcd) running otherwise
 jetconfig isn't going to do you a lot of good.
 
+** jetconfig 3.0.0 is a breaking release**: it speaks etcd's **v3 gRPC API**
+and therefore requires an etcd server of **v3.3 or newer**. The etcd v2 API
+(and the `node-etcd` client) is no longer supported. Because v2 and v3 keys
+live in separate keyspaces, configuration written through the v2 API must be
+re-set (or migrated) into v3 after upgrading.
+
 ## Getting started
 
 Without any other options, jetconfig will try to connect to an etcd instance
@@ -227,10 +233,10 @@ Create a new jetconfig instance.
     application, disabling this cache could cause your application to grind to
     a halt.
   * **`prefix`** (*String*) - Namespace prefix for etcd (default: `'config/'`)
-  * **`ssl`** (*Object*) - SSL options for etcd. See the [node-etcd SSL
-    documentation](https://github.com/stianeikeland/node-etcd#ssl-support) for
-    more information. These are not filenames, but the actual files already
-    loaded.
+  * **`ssl`** (*Object*) - SSL options for etcd. The keys match the
+    [etcd3 credentials options](https://github.com/microsoft/etcd3#creating-a-client)
+    (TLS certificates). These are not filenames, but the actual files already
+    loaded (strings or Buffers).
     * **`ca`** - Certificate Authority
     * **`cert`** - Client certificate
     * **`key`** - Client key
@@ -363,13 +369,25 @@ This may also be set with the environment variable `JETCONFIG_LOGLEVEL=debug`.
 
 ### `.client()`
 
-Return a reference to the underlying *node-etcd* client instance.
+Return a reference to the underlying etcd v3 client instance (an internal
+adapter exposing the `node-etcd` API surface on top of the npm `etcd3`
+package). See `etcd3-client.js` for the small set of methods it provides
+(`get`/`getSync`, `set`/`setSync`, `del`/`delSync`, `rmdirSync`,
+`watcher`, `close`).
 
 ### `.close()`
 
 Stop watchers. Does not attempt to close other TCP connections.
 
 ## Changelog
+
+* **3.0.0** - **Breaking:** Replace the dead `node-etcd` client (etcd v2
+  HTTP) with the `etcd3` package (etcd v3 gRPC). Requires etcd v3.3+ with
+  the gRPC API enabled; the etcd v2 API is no longer supported. Configuration
+  previously written via v2 must be migrated to v3, as the two APIs keep
+  separate keyspaces. The public `Config` API is unchanged.
+
+  *Released November 4, 2026.*
 
 * **1.4.1** - Fix watching non-JSON values causing an error.
 
