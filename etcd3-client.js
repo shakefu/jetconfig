@@ -12,7 +12,9 @@
  * gRPC call onto a shared worker thread (see `etcd3-worker.js`) and
  * block the main thread on `Atomics.wait` until the response lands in a
  * shared buffer. This works from any main-thread context, including
- * callbacks.
+ * callbacks. Every unary call carries a gRPC deadline, and a blocked call
+ * gives up (replacing the worker) if the worker stops answering, so a
+ * synchronous call can never block forever.
  *
  * Compatibility notes (v2 -> v3 shims implemented here):
  *
@@ -35,25 +37,41 @@
  *   `node.nodes`), which is what `Config.dump()` consumes.
  * - Watchers: etcd3 delivers one stream event per deleted key; etcd v2
  *   delivered a single `delete` event for the directory when a recursive
- *   delete ran. Deletes arriving in the same revision (i.e. from one
- *   ranged delete) are coalesced into a single synthetic directory delete
- *   event.
+ *   delete ran. Multiple deletes in the same revision (i.e. from one
+ *   ranged delete) are coalesced into a single directory delete event for
+ *   the watched root, and all events are emitted in revision order.
  * - TTL: `set(key, value, {ttl: n})` grants a fresh one-shot lease per
  *   call (no background keepalive), so keys expire `n` seconds after
  *   their *last* set, matching v2's refresh-on-set behavior. Setting
  *   without `ttl` detaches the key from any lease, as in v2.
+ * - Recursive reads and deletes cover the key itself and everything
+ *   below `key/` (never siblings such as `keyother`), and a recursive
+ *   delete runs as one transaction.
  * - Keys and values cross the worker boundary as UTF-8 strings, which is
- *   the only shape jetconfig stores.
+ *   the only shape jetconfig stores. The primitive ops live in
+ *   `etcd3-ops.js`, shared by the worker and the asynchronous methods.
  */
 var util = require('util');
 var path = require('path');
 var EventEmitter = require('events').EventEmitter;
 var Worker = require('worker_threads').Worker;
 var Etcd3 = require('etcd3').Etcd3;
+var etcd3Ops = require('./etcd3-ops');
+var serializeKvs = etcd3Ops.serializeKvs;
 
 // Size of the shared response buffer, in bytes. Responses are JSON
-// documents (whole dumps can be sizeable, hence the generous cap).
+// documents (whole dumps can be sizeable, hence the generous cap); a
+// response larger than this fails with "worker response too large".
 var WORKER_RESPONSE_BYTES = 16 * 1024 * 1024;
+
+// Deadline for each unary etcd call attempt, in milliseconds. etcd3 retries
+// a timed-out call, so an unreachable cluster fails after ~3x this.
+var REQUEST_TIMEOUT_MS = 5000;
+
+// Backstop for a blocking call: the gRPC deadline should always fire
+// first, but etcd3 retries some failures (up to 3 attempts), and the
+// main thread must never block forever if the worker stops answering.
+var WORKER_BACKSTOP_MS = 3 * REQUEST_TIMEOUT_MS + 5000;
 
 
 /**
@@ -292,31 +310,55 @@ var shapeImmediate = function shapeImmediate (exactKey, raw) {
  * Shape the result of a recursive read as a v2-style nested tree.
  */
 var shapeRecursive = function shapeRecursive (rootKey, raw) {
-    if (raw.kvs.length === 0 && rootKey !== '/') {
-        throw notFound(rootKey);
+    var kvs;
+    if (raw.children.length === 0) {
+        if (raw.exact.length > 0) {
+            return {action: 'get', node: kvToNode(raw.exact[0])};
+        }
+        if (rootKey !== '/') throw notFound(rootKey);
     }
-    var kvs = raw.kvs.slice().sort(byCreation);
+    kvs = raw.children.slice().sort(byCreation);
     return {action: 'get', node: buildTree(rootKey, kvs)};
 };
 
 
 /**
- * Longest common directory prefix of a list of keys, e.g.
- * ['/a/b/c', '/a/b/d'] -> '/a/b/'.
+ * Shape a read result, recursive or not.
  */
-var commonDir = function commonDir (keys) {
-    var segs = keys.map(function (key) { return key.split('/'); });
-    var common = segs[0];
-    for (var i = 1; i < segs.length; i++) {
-        var len = Math.min(common.length, segs[i].length);
-        var j;
-        for (j = 0; j < len; j++) {
-            if (common[j] !== segs[i][j]) break;
-        }
-        common = common.slice(0, j);
-    }
-    if (common.length <= 1) return '/';
-    return common.join('/') + '/';
+var shapeRead = function shapeRead (exactKey, recursive, raw) {
+    if (recursive) return shapeRecursive(exactKey, raw);
+    return shapeImmediate(exactKey, raw);
+};
+
+
+/**
+ * Shape the result of a set.
+ */
+var shapeSet = function shapeSet (key, value, raw) {
+    var revision = Number(raw.revision);
+    return {
+        action: 'set',
+        node: {
+            key: key,
+            value: value,
+            modifiedIndex: revision,
+            createdIndex: revision,
+        },
+    };
+};
+
+
+/**
+ * Shape the result of a delete (or a not-found error if nothing was
+ * deleted).
+ */
+var shapeDelete = function shapeDelete (key, recursive, raw) {
+    var revision = Number(raw.revision);
+    var node;
+    if (Number(raw.deleted) === 0) throw notFound(key);
+    node = {key: key, modifiedIndex: revision, createdIndex: revision};
+    if (recursive) node.dir = true;
+    return {action: 'delete', node: node};
 };
 
 
@@ -330,35 +372,53 @@ var workerPool = {};
 
 
 /**
+ * Start a fresh worker (and shared buffer) for a pool entry, replacing
+ * any previous one. The previous worker is terminated; it writes into its
+ * own buffer, so a late response from it can never be mistaken for one
+ * from the new worker.
+ */
+var spawnWorker = function spawnWorker (entry) {
+    var old = entry.worker;
+    var sab = new SharedArrayBuffer(4 + WORKER_RESPONSE_BYTES);
+    var header = new Int32Array(sab, 0, 1);
+    var worker = new Worker(path.join(__dirname, 'etcd3-worker.js'), {
+        workerData: {opts: entry.opts, timeout: entry.timeout, sab: sab},
+    });
+    // Unref'd so CLI invocations can exit without closing the client.
+    worker.unref();
+    worker.on('error', function () {
+        // Errors surface as a worker exit; handled there.
+    });
+    worker.on('exit', function () {
+        // Mark the buffer dead; the worker normally did this itself.
+        Atomics.store(header, 0, -1);
+        Atomics.notify(header, 0);
+    });
+    entry.worker = worker;
+    entry.sab = sab;
+    entry.header = header;
+    if (old) old.terminate();
+};
+
+
+/**
  * Acquire (or create) the worker serving the given connection options.
  */
-var acquireWorker = function acquireWorker (opts) {
-    var key = JSON.stringify(opts);
+var acquireWorker = function acquireWorker (opts, timeout) {
+    var key = JSON.stringify({opts: opts, timeout: timeout});
     var entry = workerPool[key];
     if (entry === undefined) {
-        var sab = new SharedArrayBuffer(4 + WORKER_RESPONSE_BYTES);
-        var worker = new Worker(path.join(__dirname, 'etcd3-worker.js'), {
-            workerData: {opts: opts, sab: sab},
-        });
-        // Unref'd so CLI invocations can exit without closing the client.
-        worker.unref();
-        worker.on('error', function () {
-            // Errors surface as a worker exit; handled there.
-        });
-        worker.on('exit', function () {
-            entry.exited = true;
-            // Wake a possibly-blocked caller with the error sentinel.
-            Atomics.store(entry.header, 0, -1);
-            Atomics.notify(entry.header, 0, 1);
-        });
         entry = workerPool[key] = {
-            worker: worker,
-            sab: sab,
-            header: new Int32Array(sab, 0, 1),
-            bytes: new Uint8Array(sab, 4),
+            key: key,
+            opts: opts,
+            timeout: timeout,
+            worker: null,
+            sab: null,
+            header: null,
             refs: 0,
-            exited: false,
+            seq: 0,
         };
+        spawnWorker(entry);
     }
     entry.refs += 1;
     return entry;
@@ -371,10 +431,25 @@ var acquireWorker = function acquireWorker (opts) {
 var releaseWorker = function releaseWorker (entry) {
     entry.refs -= 1;
     if (entry.refs <= 0) {
-        for (var key in workerPool) {
-            if (workerPool[key] === entry) delete workerPool[key];
-        }
+        if (workerPool[entry.key] === entry) delete workerPool[entry.key];
         entry.worker.terminate();
+    }
+};
+
+
+/**
+ * Block until the state word leaves `waitingOn` (or the deadline passes).
+ * Returns the new state, or `null` on timeout.
+ */
+var awaitState = function awaitState (header, waitingOn, deadline) {
+    var value;
+    var remaining;
+    while (true) {
+        value = Atomics.load(header, 0);
+        if (waitingOn.indexOf(value) === -1) return value;
+        remaining = deadline - Date.now();
+        if (remaining <= 0) return null;
+        Atomics.wait(header, 0, value, remaining);
     }
 };
 
@@ -382,61 +457,52 @@ var releaseWorker = function releaseWorker (entry) {
 /**
  * Run a primitive op on the worker and block until the response lands
  * in the shared buffer. The main thread can never have two requests in
- * flight (it blocks here), so the protocol is single-flight: the Int32
- * at offset 0 holds the ready sentinel/response length (0 means idle).
+ * flight (it blocks here), so the protocol is single-flight; see
+ * `etcd3-worker.js` for the meaning of the state word.
+ *
+ * A worker that died is replaced before the next call; a worker that
+ * stops answering is replaced once the backstop deadline passes.
  */
 var callWorker = function callWorker (entry, op, args) {
-    var len;
+    var deadline = Date.now() + WORKER_BACKSTOP_MS;
+    var id;
+    var header;
+    var sab;
+    var state;
     var res;
-    var value;
-    if (entry.exited) {
-        throw new Error('jetconfig: worker thread exited');
+
+    if (Atomics.load(entry.header, 0) < 0) spawnWorker(entry);
+    header = entry.header;
+    sab = entry.sab;
+
+    // Wait for the worker to boot (it then leaves the idle sentinel).
+    state = awaitState(header, [0], deadline);
+    if (state === null || state < 0) {
+        spawnWorker(entry);
+        throw new Error(state === null ?
+            'jetconfig: etcd worker did not start' :
+            'jetconfig: etcd worker exited');
     }
-    // Wait for the worker to boot (first call leaves a sentinel).
-    while (true) {
-        value = Atomics.load(entry.header, 0);
-        if (value < 0) {
-            throw new Error('jetconfig: worker thread exited');
-        }
-        if (value !== 0) break;
-        Atomics.wait(entry.header, 0, 0);
+
+    id = ++entry.seq;
+    Atomics.store(header, 0, 0);
+    entry.worker.postMessage({id: id, op: op, args: args});
+
+    state = awaitState(header, [0, 1], deadline);
+    if (state === null || state < 0) {
+        spawnWorker(entry);
+        throw new Error(state === null ?
+            'jetconfig: etcd request timed out' :
+            'jetconfig: etcd worker exited');
     }
-    if (entry.exited) {
-        throw new Error('jetconfig: worker thread exited');
+
+    res = JSON.parse(Buffer.from(sab, 4, state - 1).toString('utf8'));
+    if (res.id !== id) {
+        spawnWorker(entry);
+        throw new Error('jetconfig: etcd worker protocol error');
     }
-    Atomics.store(entry.header, 0, 0);
-    entry.worker.postMessage({op: op, args: args});
-    while (true) {
-        len = Atomics.load(entry.header, 0);
-        if (len < 0) {
-            throw new Error('jetconfig: worker thread exited');
-        }
-        if (len > 1) break;
-        Atomics.wait(entry.header, 0, len);
-    }
-    res = JSON.parse(Buffer.from(entry.sab, 4, len - 1).toString('utf8'));
     if (res.err) throw wrapError(res.err);
     return res.body;
-};
-
-
-/**
- * Convert etcd3 KV messages into plain JSON-serializable objects. (This
- * mirrors the serialization in `etcd3-worker.js` for results arriving
- * over the main-thread client.)
- */
-var serializeKvs = function serializeKvs (kvs) {
-    var out = [];
-    for (var i = 0; i < kvs.length; i++) {
-        out.push({
-            key: kvs[i].key.toString(),
-            value: kvs[i].value === undefined ?
-                undefined : kvs[i].value.toString(),
-            cr: String(kvs[i].create_revision),
-            mr: String(kvs[i].mod_revision),
-        });
-    }
-    return out;
 };
 
 
@@ -465,10 +531,12 @@ var Etcd3Watcher = function Etcd3Watcher (client, key, index, opts) {
     this.stopped = false;
     this._client = client;
     this._watcher = null;
-    this._pendingDeletes = [];
-    this._flushScheduled = false;
+    // Root of the watched range, in v2 display form. Ranged deletes are
+    // reported against it (see `_onData`).
+    this._root = trimSlashes(norm);
     client._watchers.push(this);
 
+    var retry; // retry(err), defined below
     var create = function create () {
         if (self.stopped) return;
         var builder = client._local.watch();
@@ -482,26 +550,41 @@ var Etcd3Watcher = function Etcd3Watcher (client, key, index, opts) {
                 watcher.cancel();
                 return;
             }
+            attempts = 0;
             self._watcher = watcher;
-            watcher.on('put', function (kv) {
-                self._onPut(kv);
-            });
-            watcher.on('delete', function (kv) {
-                self._onDelete(kv);
+            // Consume whole stream responses (rather than the per-event
+            // 'put'/'delete' events) so that events keep their revision
+            // order and one ranged delete can be coalesced synchronously.
+            watcher.on('data', function (res) {
+                self._onData(res);
             });
             watcher.on('disconnected', function () {
                 self.emit('reconnect',
                     new Error('Connection error, reconnecting.'));
             });
+            // etcd cancelled the watch (e.g. compaction or permissions).
+            // Without a listener this 'error' would crash the process, so
+            // report it as a reconnect and re-establish the watch.
+            watcher.on('error', function (err) {
+                if (self.stopped) return;
+                self._watcher = null;
+                // A start revision that was compacted away would fail
+                // again forever; resume from the current revision.
+                index = null;
+                retry(err);
+            });
         }, function (err) {
             if (self.stopped) return;
-            // Retry like node-etcd's watcher did, with a backoff.
-            self.emit('reconnect', wrapError(err));
-            attempts += 1;
-            var delay = Math.min(300 * Math.pow(2, attempts), 5000);
-            var timer = setTimeout(create, delay);
-            if (timer.unref) timer.unref();
+            retry(err);
         });
+    };
+    retry = function retry (err) {
+        // Retry like node-etcd's watcher did, with a backoff.
+        self.emit('reconnect', wrapError(err));
+        attempts += 1;
+        var delay = Math.min(300 * Math.pow(2, attempts), 5000);
+        var timer = setTimeout(create, delay);
+        if (timer.unref) timer.unref();
     };
     create();
 };
@@ -509,59 +592,30 @@ util.inherits(Etcd3Watcher, EventEmitter);
 
 
 /**
- * Handle a put event from the stream.
+ * Handle one watch stream response. Events are emitted in revision order.
+ * etcd v3 reports a ranged delete as one delete event per key, all sharing
+ * the same revision, whereas etcd v2 emitted a single directory delete;
+ * such a group is coalesced into one directory delete for the watched
+ * root. v3 does not say which range was deleted, so reporting the watched
+ * root may over-invalidate (a subdirectory delete clears more than it
+ * strictly needs to), which is safe for cache consumers, unlike reporting
+ * a narrower key that would leave deleted keys behind.
  */
-Etcd3Watcher.prototype._onPut = function _onPut (kv) {
-    var val = {action: 'set', node: kvToNode(serializeKvs([kv])[0])};
-    this.emit('change', val, null);
-    this.emit('set', val, null);
-};
-
-
-/**
- * Handle a delete event from the stream. Deletes belonging to a single
- * ranged delete (same revision) are buffered and coalesced into one
- * v2-style directory delete event.
- */
-Etcd3Watcher.prototype._onDelete = function _onDelete (kv) {
-    this._pendingDeletes.push(serializeKvs([kv])[0]);
-    if (this._flushScheduled) return;
-    this._flushScheduled = true;
+Etcd3Watcher.prototype._onData = function _onData (res) {
+    var events = (res && res.events) || [];
+    var deletes = [];
     var self = this;
-    setImmediate(function () { self._flushDeletes(); });
-};
 
-
-/**
- * Flush buffered delete events, coalescing same-revision deletes.
- */
-Etcd3Watcher.prototype._flushDeletes = function _flushDeletes () {
-    var groups = {};
-    var order = [];
-    var pending = this._pendingDeletes;
-    this._pendingDeletes = [];
-    this._flushScheduled = false;
-
-    for (var i = 0; i < pending.length; i++) {
-        var revision = pending[i].mr;
-        if (!groups[revision]) {
-            groups[revision] = [];
-            order.push(revision);
-        }
-        groups[revision].push(pending[i].key);
-    }
-
-    for (var j = 0; j < order.length; j++) {
-        var keys = groups[order[j]];
+    var flush = function flush () {
         var val;
-        if (keys.length > 1) {
-            // One ranged delete: v2 emitted a single directory delete.
+        if (deletes.length === 0) return;
+        if (deletes.length > 1) {
             val = {
                 action: 'delete',
                 node: {
-                    key: commonDir(keys),
+                    key: self._root,
                     dir: true,
-                    modifiedIndex: Number(order[j]),
+                    modifiedIndex: Number(deletes[0].mr),
                 },
             };
         }
@@ -569,14 +623,45 @@ Etcd3Watcher.prototype._flushDeletes = function _flushDeletes () {
             val = {
                 action: 'delete',
                 node: {
-                    key: keys[0],
-                    modifiedIndex: Number(order[j]),
+                    key: deletes[0].key,
+                    modifiedIndex: Number(deletes[0].mr),
                 },
             };
         }
-        this.emit('change', val, null);
-        this.emit('delete', val, null);
+        deletes = [];
+        self.emit('change', val, null);
+        self.emit('delete', val, null);
+    };
+
+    for (var i = 0; i < events.length; i++) {
+        var kv = serializeKvs([events[i].kv])[0];
+        var type = String(events[i].type).toLowerCase();
+        // A prefix watch on `/config` also sees `/configuration`; v2
+        // directory watches did not.
+        if (!this._inRange(kv.key)) continue;
+        if (type === 'delete') {
+            if (deletes.length > 0 && deletes[0].mr !== kv.mr) flush();
+            deletes.push(kv);
+            continue;
+        }
+        flush();
+        if (type === 'put') {
+            var val = {action: 'set', node: kvToNode(kv)};
+            this.emit('change', val, null);
+            this.emit('set', val, null);
+        }
     }
+    flush();
+};
+
+
+/**
+ * Whether `key` is the watched key or below it.
+ */
+Etcd3Watcher.prototype._inRange = function _inRange (key) {
+    var root = this._root;
+    if (root === '/' || key === root) return true;
+    return key.slice(0, root.length + 1) === root + '/';
 };
 
 
@@ -634,11 +719,51 @@ var Etcd3Client = function Etcd3Client (hosts, sslopts) {
     }
 
     this.hosts = opts.hosts.slice();
+    this.closed = false;
     // Main-thread client for asynchronous calls and watchers...
-    this._local = new Etcd3(opts);
+    this._local = new Etcd3(etcd3Ops.clientOptions(opts, REQUEST_TIMEOUT_MS));
+    this._ops = etcd3Ops.makeOps(this._local);
     // ...and a shared worker for the blocking calls.
-    this._worker = acquireWorker(opts);
+    this._worker = acquireWorker(opts, REQUEST_TIMEOUT_MS);
     this._watchers = [];
+};
+
+
+/**
+ * Run a primitive op synchronously on the worker and shape its result.
+ * Returns `{err, body, headers}`.
+ */
+Etcd3Client.prototype._sync = function _sync (op, args, shape) {
+    try {
+        return {
+            err: null,
+            body: shape(callWorker(this._worker, op, args)),
+            headers: {},
+        };
+    }
+    catch (err) {
+        return {err: wrapError(err), body: '', headers: {}};
+    }
+};
+
+
+/**
+ * Run a primitive op asynchronously on the main-thread client, shape its
+ * result, and invoke the node-etcd style `(err, body, headers)` callback.
+ */
+Etcd3Client.prototype._async = function _async (op, args, shape, callback) {
+    var promise;
+    try {
+        promise = this._ops[op](args).then(shape);
+    }
+    catch (err) {
+        promise = Promise.reject(err);
+    }
+    promise.then(function (body) {
+        defer(function () { callback(null, body, {}); });
+    }, function (err) {
+        defer(function () { callback(wrapError(err), '', {}); });
+    });
 };
 
 
@@ -646,24 +771,11 @@ var Etcd3Client = function Etcd3Client (hosts, sslopts) {
  * Synchronous get. Returns `{err, body, headers}`.
  */
 Etcd3Client.prototype.getSync = function getSync (key, opts) {
-    opts = opts || {};
-    var norm = normalizeKey(key);
-    try {
-        var body;
-        if (opts.recursive === true) {
-            body = shapeRecursive(trimSlashes(norm),
-                callWorker(this._worker, 'getRecursive', {prefix: norm}));
-        }
-        else {
-            body = shapeImmediate(trimSlashes(norm),
-                callWorker(this._worker, 'getImmediate',
-                    {key: norm, exactKey: trimSlashes(norm)}));
-        }
-        return {err: null, body: body, headers: {}};
-    }
-    catch (err) {
-        return {err: wrapError(err), body: '', headers: {}};
-    }
+    var exactKey = trimSlashes(normalizeKey(key));
+    var recursive = !!(opts && opts.recursive === true);
+    return this._sync('read', {key: exactKey}, function (raw) {
+        return shapeRead(exactKey, recursive, raw);
+    });
 };
 
 
@@ -675,35 +787,11 @@ Etcd3Client.prototype.get = function get (key, opts, callback) {
         callback = opts;
         opts = undefined;
     }
-    var self = this;
-    var norm = normalizeKey(key);
-    var exactKey = trimSlashes(norm);
-    var promise;
-    if (opts && opts.recursive === true) {
-        promise = this._local.getAll().prefix(norm).exec()
-            .then(function (res) {
-                return shapeRecursive(exactKey, {kvs: serializeKvs(res.kvs)});
-            });
-    }
-    else {
-        var childPrefix = norm;
-        if (!/\/$/.test(childPrefix)) childPrefix += '/';
-        promise = this._local.get(exactKey).exec().then(function (res) {
-            var exact = serializeKvs(res.kvs);
-            return self._local.getAll().prefix(childPrefix).exec()
-                .then(function (children) {
-                    return shapeImmediate(exactKey, {
-                        exact: exact,
-                        children: serializeKvs(children.kvs),
-                    });
-                });
-        });
-    }
-    promise.then(function (body) {
-        defer(function () { callback(null, body, {}); });
-    }, function (err) {
-        defer(function () { callback(wrapError(err), '', {}); });
-    });
+    var exactKey = trimSlashes(normalizeKey(key));
+    var recursive = !!(opts && opts.recursive === true);
+    this._async('read', {key: exactKey}, function (raw) {
+        return shapeRead(exactKey, recursive, raw);
+    }, callback);
 };
 
 
@@ -713,27 +801,8 @@ Etcd3Client.prototype.get = function get (key, opts, callback) {
 Etcd3Client.prototype.setSync = function setSync (key, value, opts) {
     var norm = normalizeKey(key);
     var ttl = opts ? Number(opts.ttl) : NaN;
-    try {
-        var raw = callWorker(this._worker, 'put',
-            {key: norm, value: value, ttl: ttl});
-        var revision = Number(raw.revision);
-        return {
-            err: null,
-            headers: {},
-            body: {
-                action: 'set',
-                node: {
-                    key: norm,
-                    value: value,
-                    modifiedIndex: revision,
-                    createdIndex: revision,
-                },
-            },
-        };
-    }
-    catch (err) {
-        return {err: wrapError(err), body: '', headers: {}};
-    }
+    return this._sync('put', {key: norm, value: value, ttl: ttl},
+        function (raw) { return shapeSet(norm, value, raw); });
 };
 
 
@@ -747,63 +816,20 @@ Etcd3Client.prototype.set = function set (key, value, opts, callback) {
     }
     var norm = normalizeKey(key);
     var ttl = opts ? Number(opts.ttl) : NaN;
-    var promise;
-    if (ttl >= 1) {
-        // A fresh lease per set; no keepalive, so the key expires `ttl`
-        // seconds after its last set (v2 refresh-on-set semantics).
-        promise = this._local.lease(ttl, {autoKeepAlive: false})
-            .put(norm).value(value);
-    }
-    else {
-        // A put without a lease detaches the key from any existing one.
-        promise = this._local.put(norm).value(value).exec();
-    }
-    promise.then(function (res) {
-        var revision = res && res.header ? Number(res.header.revision) : 0;
-        var body = {
-            action: 'set',
-            node: {
-                key: norm,
-                value: value,
-                modifiedIndex: revision,
-                createdIndex: revision,
-            },
-        };
-        defer(function () { callback(null, body, {}); });
-    }, function (err) {
-        defer(function () { callback(wrapError(err), '', {}); });
-    });
+    this._async('put', {key: norm, value: value, ttl: ttl},
+        function (raw) { return shapeSet(norm, value, raw); }, callback);
 };
 
 
 /**
- * Synchronous delete. Returns `{err, body, headers}`.
+ * Synchronous delete. Returns `{err, body, headers}`. With
+ * `{recursive: true}` the key and everything below `key/` is deleted.
  */
 Etcd3Client.prototype.delSync = function delSync (key, opts) {
-    var norm = normalizeKey(key);
+    var delKey = trimSlashes(normalizeKey(key));
     var recursive = !!(opts && opts.recursive === true);
-    var delKey = trimSlashes(norm);
-    try {
-        var raw = callWorker(this._worker, 'delete',
-            {key: recursive ? norm : delKey, recursive: recursive});
-        var deleted = Number(raw.deleted);
-        if (deleted === 0) throw notFound(delKey);
-        var revision = Number(raw.revision);
-        var node = {
-            key: delKey,
-            modifiedIndex: revision,
-            createdIndex: revision,
-        };
-        if (recursive) node.dir = true;
-        return {
-            err: null,
-            headers: {},
-            body: {action: 'delete', node: node},
-        };
-    }
-    catch (err) {
-        return {err: wrapError(err), body: '', headers: {}};
-    }
+    return this._sync('delete', {key: delKey, recursive: recursive},
+        function (raw) { return shapeDelete(delKey, recursive, raw); });
 };
 
 
@@ -823,28 +849,11 @@ Etcd3Client.prototype.del = function del (key, opts, callback) {
         callback = opts;
         opts = undefined;
     }
-    var norm = normalizeKey(key);
+    var delKey = trimSlashes(normalizeKey(key));
     var recursive = !!(opts && opts.recursive === true);
-    var delKey = trimSlashes(norm);
-    var promise = recursive ?
-        this._local.delete().prefix(norm).exec() :
-        this._local.delete().key(delKey).exec();
-    promise.then(function (res) {
-        var deleted = res && res.deleted ? Number(res.deleted) : 0;
-        if (deleted === 0) throw notFound(delKey);
-        var revision = res.header ? Number(res.header.revision) : 0;
-        var node = {
-            key: delKey,
-            modifiedIndex: revision,
-            createdIndex: revision,
-        };
-        if (recursive) node.dir = true;
-        defer(function () {
-            callback(null, {action: 'delete', node: node}, {});
-        });
-    }, function (err) {
-        defer(function () { callback(wrapError(err), '', {}); });
-    });
+    this._async('delete', {key: delKey, recursive: recursive},
+        function (raw) { return shapeDelete(delKey, recursive, raw); },
+        callback);
 };
 Etcd3Client.prototype['delete'] = Etcd3Client.prototype.del;
 
@@ -877,6 +886,9 @@ Etcd3Client.prototype.watcher = function watcher (key, index, opts) {
  * Close the client and all its watchers.
  */
 Etcd3Client.prototype.close = function close () {
+    // Closing twice must not release the shared worker twice.
+    if (this.closed) return;
+    this.closed = true;
     this._watchers.slice().forEach(function (watcher) {
         watcher.stop();
     });

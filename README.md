@@ -385,7 +385,10 @@ Stop watchers. Does not attempt to close other TCP connections.
   HTTP) with the `etcd3` package (etcd v3 gRPC). Requires etcd v3.3+ with
   the gRPC API enabled; the etcd v2 API is no longer supported. Configuration
   previously written via v2 must be migrated to v3, as the two APIs keep
-  separate keyspaces. The public `Config` API is unchanged.
+  separate keyspaces. The public `Config` API is unchanged. Each etcd call
+  now times out after 5 seconds per attempt (an unreachable cluster fails
+  after roughly 15 seconds instead of hanging), and a single synchronous
+  response (e.g. a `dump()`) is limited to 16 MiB.
 
   *Released November 4, 2026.*
 
